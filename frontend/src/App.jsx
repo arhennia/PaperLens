@@ -23,6 +23,7 @@ function App() {
   const [searchQuery, setSearchQuery] = useState('');
   const [copied, setCopied] = useState(false);
   const fileInputRef = useRef(null);
+  const [activeTab, setActiveTab] = useState('questions'); // 'questions' | 'raw_text'
 
   // Drag & drop handlers
   const handleDrag = (e) => {
@@ -133,6 +134,7 @@ function App() {
     setErrorMsg('');
     setExtractionResult(null);
     setSearchQuery('');
+    setActiveTab('questions');
   };
 
   // Helper function to render text with highlighted search results
@@ -350,13 +352,23 @@ function App() {
                     </div>
                   </div>
 
-                  <div>
-                    <label className="text-[10px] uppercase tracking-wider text-slate-500 font-bold block mb-1">
-                      Total Characters
-                    </label>
-                    <p className="text-slate-300 font-mono text-sm">
-                      {extractionResult.extractedText.length.toLocaleString()} chars
-                    </p>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="text-[10px] uppercase tracking-wider text-slate-500 font-bold block mb-1">
+                        Questions Found
+                      </label>
+                      <p className="text-2xl font-extrabold text-emerald-450">
+                        {extractionResult.questionCount}
+                      </p>
+                    </div>
+                    <div>
+                      <label className="text-[10px] uppercase tracking-wider text-slate-500 font-bold block mb-1">
+                        Total Characters
+                      </label>
+                      <p className="text-slate-300 font-mono text-sm mt-1">
+                        {extractionResult.extractedText.length.toLocaleString()} chars
+                      </p>
+                    </div>
                   </div>
                 </div>
 
@@ -383,11 +395,32 @@ function App() {
             {/* Content Preview Card */}
             <div className="lg:col-span-2 bg-slate-900/40 border border-slate-900/80 backdrop-blur-md rounded-2xl p-6 shadow-xl flex flex-col h-[600px]">
               
-              {/* Toolbar */}
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-4 border-b border-slate-800/85 gap-3">
-                <h3 className="text-white font-bold text-base tracking-wide">
-                  Extracted Document Text
-                </h3>
+              {/* Tab Bar and Toolbar */}
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-4 border-b border-slate-800/85 gap-4">
+                
+                {/* Tabs */}
+                <div className="flex space-x-1 p-0.5 bg-slate-950 border border-slate-850 rounded-xl max-w-xs w-full sm:w-auto">
+                  <button
+                    onClick={() => setActiveTab('questions')}
+                    className={`flex-1 sm:flex-initial px-4 py-1.5 rounded-lg text-xs font-semibold tracking-wide transition-all cursor-pointer ${
+                      activeTab === 'questions'
+                        ? 'bg-indigo-600 text-white shadow-md shadow-indigo-950'
+                        : 'text-slate-400 hover:text-slate-250 hover:bg-slate-900/40'
+                    }`}
+                  >
+                    Questions View
+                  </button>
+                  <button
+                    onClick={() => setActiveTab('raw_text')}
+                    className={`flex-1 sm:flex-initial px-4 py-1.5 rounded-lg text-xs font-semibold tracking-wide transition-all cursor-pointer ${
+                      activeTab === 'raw_text'
+                        ? 'bg-indigo-650 text-white shadow-md shadow-indigo-950'
+                        : 'text-slate-400 hover:text-slate-250 hover:bg-slate-900/40'
+                    }`}
+                  >
+                    Raw Text View
+                  </button>
+                </div>
                 
                 {/* Search Bar */}
                 <div className="relative max-w-xs w-full">
@@ -396,7 +429,7 @@ function App() {
                   </div>
                   <input
                     type="text"
-                    placeholder="Search inside text..."
+                    placeholder={activeTab === 'questions' ? "Search questions..." : "Search inside text..."}
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                     className="block w-full pl-9 pr-3 py-1.5 text-sm bg-slate-950 border border-slate-850 focus:border-indigo-500/50 focus:ring-1 focus:ring-indigo-550 focus:outline-none rounded-xl text-slate-200 placeholder-slate-500 transition-all font-mono"
@@ -404,7 +437,7 @@ function App() {
                   {searchQuery && (
                     <button
                       onClick={() => setSearchQuery('')}
-                      className="absolute inset-y-0 right-0 pr-3 flex items-center text-xs text-slate-500 hover:text-slate-350"
+                      className={`absolute inset-y-0 right-0 pr-3 flex items-center text-xs text-slate-500 hover:text-slate-350 bg-transparent border-0 cursor-pointer`}
                     >
                       Clear
                     </button>
@@ -412,10 +445,90 @@ function App() {
                 </div>
               </div>
 
-              {/* Text Area */}
-              <div className="flex-1 overflow-y-auto mt-4 pr-2 bg-slate-950/40 rounded-xl p-4 border border-slate-900/80 font-mono text-sm leading-relaxed text-slate-300 break-words whitespace-pre-wrap select-text">
-                {renderHighlightedText(extractionResult.extractedText)}
-              </div>
+              {/* Questions Tab Content */}
+              {activeTab === 'questions' && (
+                <div className="flex-1 overflow-y-auto mt-4 pr-2 space-y-4">
+                  {extractionResult.questions.length === 0 ? (
+                    <div className="flex flex-col items-center justify-center py-20 text-center">
+                      <AlertCircle className="w-12 h-12 text-slate-500 mb-4" />
+                      <p className="text-slate-300 font-semibold text-lg">No Questions Detected</p>
+                      <p className="text-slate-500 text-sm max-w-sm mt-1">
+                        The Question Extraction Engine could not identify any standard question numbering or format patterns in this document.
+                      </p>
+                      <p className="text-slate-500 text-xs mt-4">
+                        You can inspect the raw text using the <strong className="text-slate-400 font-semibold">Raw Text View</strong> tab.
+                      </p>
+                    </div>
+                  ) : (() => {
+                    const filteredQuestions = extractionResult.questions.filter(q => {
+                      if (!searchQuery) return true;
+                      const query = searchQuery.toLowerCase();
+                      return (
+                        q.questionNumber.toLowerCase().includes(query) ||
+                        q.questionText.toLowerCase().includes(query) ||
+                        (q.section && q.section.toLowerCase().includes(query))
+                      );
+                    });
+
+                    if (filteredQuestions.length === 0) {
+                      return (
+                        <div className="flex flex-col items-center justify-center py-20 text-center">
+                          <AlertCircle className="w-10 h-10 text-slate-600 mb-3" />
+                          <p className="text-slate-400 font-medium">No questions match your search query.</p>
+                          <button 
+                            onClick={() => setSearchQuery('')}
+                            className="mt-2 text-xs text-indigo-400 hover:text-indigo-300 font-semibold cursor-pointer"
+                          >
+                            Clear Search
+                          </button>
+                        </div>
+                      );
+                    }
+
+                    return filteredQuestions.map((q, idx) => (
+                      <div 
+                        key={idx} 
+                        className="bg-slate-950/50 border border-slate-900 hover:border-slate-800 rounded-xl p-5 transition-all flex flex-col space-y-3 relative group overflow-hidden"
+                      >
+                        {/* Card subtle hover highlight */}
+                        <div className="absolute inset-0 bg-gradient-to-r from-indigo-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none" />
+                        
+                        {/* Top row: Number, Section, Marks */}
+                        <div className="flex flex-wrap items-center justify-between gap-2 z-10">
+                          <div className="flex items-center space-x-2">
+                            <span className="font-mono font-bold text-sm text-indigo-400 bg-indigo-950/50 border border-indigo-900/60 px-2.5 py-0.5 rounded-lg shadow-sm">
+                              {renderHighlightedText(q.questionNumber)}
+                            </span>
+                            {q.section && (
+                              <span className="text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded bg-slate-900 border border-slate-850 text-slate-400">
+                                {renderHighlightedText(q.section)}
+                              </span>
+                            )}
+                          </div>
+                          
+                          {q.marks !== undefined && (
+                            <span className="text-xs font-semibold px-2 py-0.5 rounded-md bg-emerald-950/40 border border-emerald-900/50 text-emerald-450 font-mono">
+                              {q.marks} {typeof q.marks === 'number' || !isNaN(q.marks) ? 'Marks' : ''}
+                            </span>
+                          )}
+                        </div>
+                        
+                        {/* Body: Text */}
+                        <p className="text-slate-350 text-sm leading-relaxed z-10 break-words select-text">
+                          {renderHighlightedText(q.questionText)}
+                        </p>
+                      </div>
+                    ));
+                  })()}
+                </div>
+              )}
+
+              {/* Raw Text Tab Content */}
+              {activeTab === 'raw_text' && (
+                <div className="flex-1 overflow-y-auto mt-4 pr-2 bg-slate-950/40 rounded-xl p-4 border border-slate-900/80 font-mono text-sm leading-relaxed text-slate-300 break-words whitespace-pre-wrap select-text">
+                  {renderHighlightedText(extractionResult.extractedText)}
+                </div>
+              )}
             </div>
 
           </div>
