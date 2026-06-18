@@ -264,8 +264,15 @@ def precompute_and_cache_analytics(session_id: str):
         cursor = conn.execute("SELECT COUNT(rq.id) as cnt FROM raw_questions rq JOIN papers p ON rq.paper_id = p.id WHERE p.session_id = ?", (session_id,))
         total_raw_questions = cursor.fetchone()["cnt"]
         
-        # 2. Total unique question groups
-        cursor = conn.execute("SELECT COUNT(id) as cnt FROM question_groups WHERE session_id = ?", (session_id,))
+        # 2. Total unique questions (conceptually unique, counting distinct clusters/groups)
+        cursor = conn.execute(
+            """
+            SELECT COUNT(DISTINCT COALESCE(cluster_id, id)) as cnt 
+            FROM question_groups 
+            WHERE session_id = ?
+            """,
+            (session_id,)
+        )
         total_unique_questions = cursor.fetchone()["cnt"]
         
         # 3. Repeat Rate: 100 * (1 - Unique Groups / Total Raw Questions)
