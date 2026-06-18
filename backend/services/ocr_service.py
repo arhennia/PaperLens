@@ -53,3 +53,23 @@ def perform_ocr_on_pdf(pdf_bytes: bytes, dpi: int = 150) -> str:
             raise RuntimeError(f"OCR failed on page {page_num + 1}: {str(e)}")
             
     return "\n\n".join(extracted_pages)
+
+def perform_ocr_on_page(page: fitz.Page, dpi: int = 150) -> str:
+    """
+    Renders a single PyMuPDF Page to an image and performs OCR.
+    """
+    try:
+        pix = page.get_pixmap(dpi=dpi)
+        img_data = pix.tobytes("png")
+        img = Image.open(io.BytesIO(img_data))
+        page_text = pytesseract.image_to_string(img)
+        return page_text
+    except pytesseract.TesseractNotFoundError:
+        raise RuntimeError(
+            "Tesseract OCR engine is not installed or not configured correctly on this system. "
+            "Ensure that Tesseract-OCR is installed and either in your PATH or configured via "
+            "the TESSERACT_CMD environment variable."
+        )
+    except Exception as e:
+        raise RuntimeError(f"OCR failed: {str(e)}")
+
