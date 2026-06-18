@@ -123,18 +123,19 @@ Q3. What is DFS? (20 marks)
     
     assert status == 200, f"Expected 200, got {status}"
     questions = data.get('questions', [])
-    # Should extract Q1 as header, and Q1(a), Q1(b)
-    assert len(questions) == 3, f"Expected 3 questions, got {len(questions)}"
+    # Should extract Q1, with Q1(a) and Q1(b) nested inside
+    assert len(questions) == 1, f"Expected 1 question, got {len(questions)}"
     assert questions[0]['questionNumber'] == "Q1"
     assert questions[0]['questionText'] == "Answer the following"
+    assert len(questions[0]['subquestions']) == 2
     
-    assert questions[1]['questionNumber'] == "Q1(a)"
-    assert questions[1]['questionText'] == "What is AVL?"
-    assert questions[1]['marks'] == 10
+    assert questions[0]['subquestions'][0]['questionNumber'] == "Q1(a)"
+    assert questions[0]['subquestions'][0]['questionText'] == "What is AVL?"
+    assert questions[0]['subquestions'][0]['marks'] == 10
     
-    assert questions[2]['questionNumber'] == "Q1(b)"
-    assert questions[2]['questionText'] == "What is DFS?"
-    assert questions[2]['marks'] == 5
+    assert questions[0]['subquestions'][1]['questionNumber'] == "Q1(b)"
+    assert questions[0]['subquestions'][1]['questionText'] == "What is DFS?"
+    assert questions[0]['subquestions'][1]['marks'] == 5
     print("Case B PASSED!")
 
     # ----------------------------------------------------
@@ -161,20 +162,25 @@ a) reverse singly linked list [10]
     
     assert status == 200, f"Expected 200, got {status}"
     questions = data.get('questions', [])
-    # Should extract Q1(a), Q1(b), Q2(a) (Q1/Q2 headers are skipped if they have no text)
-    assert len(questions) == 3, f"Expected 3 questions, got {len(questions)}"
-    assert questions[0]['questionNumber'] == "Q1(a)"
-    assert questions[0]['questionText'] == "Define Stack"
-    assert questions[0]['marks'] == 5
+    # Under the hierarchical parser, we expect Q1 and Q2 with nested subquestions
+    assert len(questions) == 2, f"Expected 2 questions, got {len(questions)}"
+    
+    assert questions[0]['questionNumber'] == "Q1"
     assert questions[0]['section'] == "SECTION B"
+    assert len(questions[0]['subquestions']) == 2
+    assert questions[0]['subquestions'][0]['questionNumber'] == "Q1(a)"
+    assert questions[0]['subquestions'][0]['questionText'] == "Define Stack"
+    assert questions[0]['subquestions'][0]['marks'] == 5
+    assert questions[0]['subquestions'][1]['questionNumber'] == "Q1(b)"
+    assert questions[0]['subquestions'][1]['questionText'] == "Explain Queue"
+    assert questions[0]['subquestions'][1]['marks'] == 5
     
-    assert questions[1]['questionNumber'] == "Q1(b)"
-    assert questions[1]['questionText'] == "Explain Queue"
-    assert questions[1]['marks'] == 5
-    
-    assert questions[2]['questionNumber'] == "Q2(a)"
-    assert questions[2]['questionText'] == "reverse singly linked list"
-    assert questions[2]['marks'] == 10
+    assert questions[1]['questionNumber'] == "Q2"
+    assert questions[1]['section'] == "SECTION B"
+    assert len(questions[1]['subquestions']) == 1
+    assert questions[1]['subquestions'][0]['questionNumber'] == "Q2(a)"
+    assert questions[1]['subquestions'][0]['questionText'] == "reverse singly linked list"
+    assert questions[1]['subquestions'][0]['marks'] == 10
     print("Case C PASSED!")
 
     # ----------------------------------------------------
