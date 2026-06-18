@@ -12,7 +12,7 @@ import {
   Sparkles
 } from 'lucide-react';
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+const API_URL = import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000';
 
 function App() {
   const [dragActive, setDragActive] = useState(false);
@@ -436,7 +436,7 @@ function App() {
             </div>
 
             {/* Content Preview Card */}
-            <div className="lg:col-span-2 bg-slate-900/40 border border-slate-900/80 backdrop-blur-md rounded-3xl p-6 shadow-xl flex flex-col max-h-[650px]">
+            <div className="lg:col-span-2 bg-slate-900/40 border border-slate-900/80 backdrop-blur-md rounded-3xl p-6 shadow-xl flex flex-col max-h-162.5">
               
               {/* Tab Bar and Toolbar */}
               <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-4 border-b border-slate-800/85 gap-4">
@@ -593,6 +593,29 @@ function App() {
                                 <p className="text-slate-400 text-xs leading-relaxed break-word select-text">
                                   {renderHighlightedText(sub.questionText)}
                                 </p>
+                                
+                                {/* Nested Sub-subquestions List */}
+                                {sub.subquestions && sub.subquestions.length > 0 && (
+                                  <div className="pl-4 border-l-2 border-slate-800/60 space-y-2 mt-2">
+                                    {sub.subquestions.map((ssq, ssIdx) => (
+                                      <div key={ssIdx} className="bg-slate-950/40 border border-slate-900/40 rounded p-2 flex flex-col space-y-1">
+                                        <div className="flex items-center justify-between gap-2">
+                                          <span className="font-mono font-semibold text-[11px] text-indigo-300 bg-indigo-950/20 border border-indigo-900/30 px-2 py-0.5 rounded">
+                                            {renderHighlightedText(ssq.questionNumber)}
+                                          </span>
+                                          {ssq.marks !== undefined && (
+                                            <span className="text-[9px] font-semibold px-1 py-0.2 rounded bg-slate-950/50 border border-slate-800 text-emerald-500 font-mono">
+                                              {ssq.marks} {typeof ssq.marks === 'number' || !isNaN(ssq.marks) ? 'Marks' : ''}
+                                            </span>
+                                          )}
+                                        </div>
+                                        <p className="text-slate-500 text-[11px] leading-relaxed break-word select-text">
+                                          {renderHighlightedText(ssq.questionText)}
+                                        </p>
+                                      </div>
+                                    ))}
+                                  </div>
+                                )}
                               </div>
                             ))}
                           </div>
