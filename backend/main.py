@@ -5,7 +5,8 @@ from fastapi.middleware.cors import CORSMiddleware
 # pyrefly: ignore [missing-import]
 from services.pdf_service import extract_text_from_pdf_bytes
 # pyrefly: ignore [missing-import]
-from services.question_extraction_service import parse_questions_from_text
+from services.question_extraction_service import parse_questions_from_text, validate_extracted_questions
+
 
 app = FastAPI(title="PaperLens API", description="Milestone 3 - Question Extraction Engine")
 
@@ -45,12 +46,16 @@ async def upload_pdf(file: UploadFile = File(...)):
         # 2. Extract structured questions
         questions = parse_questions_from_text(raw_text)
         
+        # 3. Validate extraction
+        warnings = validate_extracted_questions(questions, page_count)
+        
         return {
             "filename": filename,
             "pageCount": page_count,
             "extractionMethod": method,
             "questionCount": len(questions),
             "questions": questions,
+            "warnings": warnings,
             "extractedText": raw_text  # Kept so the UI raw tab can display it
         }
         
