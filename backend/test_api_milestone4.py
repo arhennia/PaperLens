@@ -210,7 +210,7 @@ def run_tests():
     print("\n--- Step 5: Verifying CSV export streams correctly ---")
     req = urllib.request.Request(f"{API_URL}/api/sessions/{session_id}/export/csv", method="GET")
     with urllib.request.urlopen(req) as resp:
-        headers = dict(resp.info())
+        headers = resp.info()
         assert "text/csv" in headers.get("Content-Type", ""), "Response is not text/csv"
         body = resp.read().decode("utf-8")
         lines = body.splitlines()
