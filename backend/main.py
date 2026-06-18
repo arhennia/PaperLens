@@ -264,7 +264,7 @@ def get_session_questions(
             
         # Build query
         query = """
-            SELECT qg.id, qg.canonical_text, qg.priority_score, qg.priority_level,
+            SELECT qg.id, qg.canonical_text, qg.priority_score, qg.priority_level, qg.cluster_id,
                    qg.avg_marks, qg.max_marks, qg.first_year, qg.last_year, qg.year_span,
                    qg.f_freq, qg.f_recency, qg.f_marks, qg.f_spread, qg.f_cluster, qg.f_chapter,
                    qg.priority_reason, qg.similarity_confidence, t.name as topic_name, t.id as topic_id,
@@ -304,17 +304,32 @@ def get_session_questions(
             group_id = g["id"]
             
             # Fetch evolution timeline (chronological list of verbatim question texts from occurrences)
-            cursor_occ = conn.execute(
-                """
-                SELECT qo.year, qo.marks, rq.question_text, rq.question_number, p.filename
-                FROM question_occurrences qo
-                JOIN raw_questions rq ON qo.raw_question_id = rq.id
-                JOIN papers p ON qo.paper_id = p.id
-                WHERE qo.group_id = ?
-                ORDER BY qo.year ASC
-                """,
-                (group_id,)
-            )
+            # If the group belongs to a cluster, fetch all occurrences from all groups in that cluster
+            if g["cluster_id"]:
+                cursor_occ = conn.execute(
+                    """
+                    SELECT qo.year, qo.marks, rq.question_text, rq.question_number, p.filename
+                    FROM question_occurrences qo
+                    JOIN raw_questions rq ON qo.raw_question_id = rq.id
+                    JOIN papers p ON qo.paper_id = p.id
+                    JOIN question_groups qg ON qo.group_id = qg.id
+                    WHERE qg.cluster_id = ?
+                    ORDER BY qo.year ASC
+                    """,
+                    (g["cluster_id"],)
+                )
+            else:
+                cursor_occ = conn.execute(
+                    """
+                    SELECT qo.year, qo.marks, rq.question_text, rq.question_number, p.filename
+                    FROM question_occurrences qo
+                    JOIN raw_questions rq ON qo.raw_question_id = rq.id
+                    JOIN papers p ON qo.paper_id = p.id
+                    WHERE qo.group_id = ?
+                    ORDER BY qo.year ASC
+                    """,
+                    (group_id,)
+                )
             occs = cursor_occ.fetchall()
             
             evolution = []
