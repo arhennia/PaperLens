@@ -63,8 +63,8 @@ def normalize_document_text(text: str) -> str:
     noise_patterns = [
         re.compile(r'(?i)^\s*Page\s*[-:\s]*\d+(?:\s*(?:of|/)\s*\d+)?\s*$'), # Page numbers
         re.compile(r'(?i)^\s*pg\.?\s*\d+\s*$'), # pg. 1
-        re.compile(r'(?i).*KIIT UNIVERSITY.*'),
-        re.compile(r'(?i).*KALINGA INSTITUTE.*'),
+        re.compile(r'(?i).*NITR*'),
+        re.compile(r'(?i).*NATIONAL INSTITUTE OF TECHNOLOGY ROURKELA.*'),
         re.compile(r'(?i).*BEST OF LUCK.*'),
         re.compile(r'(?i).*ALL THE BEST.*'),
         re.compile(r'(?i).*PAPERLENS.*'),
