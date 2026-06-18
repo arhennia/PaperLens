@@ -44,16 +44,17 @@ async def upload_pdf(file: UploadFile = File(...)):
             raise HTTPException(status_code=500, detail=str(re))
             
         # 2. Extract structured questions
-        questions = parse_questions_from_text(raw_text)
+        questions, sections_found, parser_warnings = parse_questions_from_text(raw_text)
         
         # 3. Validate extraction
-        warnings = validate_extracted_questions(questions, page_count)
+        warnings = validate_extracted_questions(questions, page_count, parser_warnings)
         
         return {
             "filename": filename,
             "pageCount": page_count,
             "extractionMethod": method,
             "questionCount": len(questions),
+            "sectionsFound": sections_found,
             "questions": questions,
             "warnings": warnings,
             "extractedText": raw_text  # Kept so the UI raw tab can display it
