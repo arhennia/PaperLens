@@ -1,0 +1,2007 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PaperLens — Milestone 4: Multi-PDF Analysis Engine Blueprint</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:ital,wght@0,400;0,500;0,600;0,700;1,400&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+/* ── TOKENS ──────────────────────────────────────────── */
+:root {
+  --paper:       #F6F3EC;
+  --paper-2:     #EDEAD E;
+  --paper-card:  #FFFFFF;
+  --ink:         #1A2B38;
+  --ink-mid:     #3D5166;
+  --ink-soft:    #607384;
+  --rule:        #D8D1C0;
+
+  --navy:        #0F2840;
+  --navy-2:      #162F47;
+  --navy-light:  #1F4E79;
+  --blue-glow:   #9FD3FF;
+  --blue-pale:   #D6EBFC;
+
+  --amber:       #C97A20;
+  --amber-light: #F6C27A;
+  --amber-bg:    rgba(201,122,32,.08);
+
+  /* priority tier palette */
+  --p-critical:  #B5353C;
+  --p-veryhigh:  #C97A20;
+  --p-high:      #2A7A55;
+  --p-medium:    #1E5A9B;
+  --p-low:       #5E7A8E;
+
+  --p-critical-bg:  rgba(181,53,60,.1);
+  --p-veryhigh-bg:  rgba(201,122,32,.1);
+  --p-high-bg:      rgba(42,122,85,.1);
+  --p-medium-bg:    rgba(30,90,155,.1);
+  --p-low-bg:       rgba(94,122,142,.08);
+
+  --code-bg:     #0C1E30;
+  --code-text:   #C8E0F4;
+  --code-comment:#6A8EA8;
+  --code-key:    #F6C27A;
+  --code-val:    #90D4A8;
+}
+
+/* ── RESET / BASE ────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; font-size: 16px; }
+body {
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  background: var(--paper);
+  color: var(--ink);
+  line-height: 1.7;
+}
+
+/* ── LAYOUT ──────────────────────────────────────────── */
+.page-grid { display: grid; grid-template-columns: 276px 1fr; min-height: 100vh; }
+
+/* ── SIDEBAR ─────────────────────────────────────────── */
+.sidebar {
+  position: sticky; top: 0; align-self: start; height: 100vh;
+  overflow-y: auto; background: var(--navy); color: var(--blue-glow);
+  padding: 28px 20px 48px; border-right: 1px solid rgba(159,211,255,.12);
+}
+.sidebar::-webkit-scrollbar { width: 4px; }
+.sidebar::-webkit-scrollbar-thumb { background: rgba(159,211,255,.25); border-radius: 4px; }
+
+.sb-brand { margin-bottom: 22px; }
+.sb-brand .logo {
+  font-family: 'JetBrains Mono', monospace; font-weight: 700; font-size: 1rem;
+  color: #fff; letter-spacing: .04em;
+}
+.sb-brand .milestone-badge {
+  display: inline-block; margin-top: 6px; padding: 3px 9px;
+  background: var(--amber); color: #fff;
+  font-family: 'JetBrains Mono', monospace; font-size: .66rem;
+  letter-spacing: .14em; text-transform: uppercase; font-weight: 700;
+}
+.sb-brand .sub {
+  font-size: .72rem; color: rgba(159,211,255,.65); margin-top: 6px;
+  padding-bottom: 18px; border-bottom: 1px dashed rgba(159,211,255,.18);
+}
+
+.sb-status { margin-bottom: 18px; padding: 12px; background: rgba(42,122,85,.12); border: 1px solid rgba(42,122,85,.4); border-radius: 4px; }
+.sb-status .tag { font-family: 'JetBrains Mono', monospace; font-size: .66rem; letter-spacing: .14em; text-transform: uppercase; color: #6DDCA4; display: block; margin-bottom: 5px; }
+.sb-status ul { list-style: none; font-size: .78rem; color: rgba(159,211,255,.8); }
+.sb-status ul li { padding: 2px 0; }
+.sb-status ul li::before { content: '✓ '; color: #6DDCA4; }
+
+.sb-nav { list-style: none; }
+.sb-nav li { border-bottom: 1px solid rgba(159,211,255,.07); }
+.sb-nav li a {
+  display: flex; align-items: baseline; gap: 10px;
+  padding: 9px 4px; color: rgba(159,211,255,.75);
+  text-decoration: none; font-family: 'JetBrains Mono', monospace; font-size: .78rem;
+  letter-spacing: .02em; transition: color .15s;
+}
+.sb-nav li a:hover { color: #fff; }
+.sb-nav li a .num { color: var(--amber); flex-shrink: 0; font-size: .7rem; }
+
+.sb-note {
+  margin-top: 24px; padding: 13px; border: 1px dashed var(--amber);
+  border-radius: 3px; background: var(--amber-bg);
+  font-size: .75rem; color: rgba(159,211,255,.8); line-height: 1.5;
+}
+.sb-note strong { display: block; color: var(--amber-light); font-family: 'JetBrains Mono', monospace; font-size: .68rem; letter-spacing: .12em; text-transform: uppercase; margin-bottom: 6px; }
+
+/* ── MAIN CONTENT ────────────────────────────────────── */
+.main { padding: 48px 56px 100px; max-width: 1000px; }
+
+/* ── HERO BLOCK ──────────────────────────────────────── */
+.hero { margin-bottom: 52px; }
+.hero .kicker {
+  font-family: 'JetBrains Mono', monospace; font-size: .75rem; letter-spacing: .22em;
+  text-transform: uppercase; color: var(--amber); margin-bottom: 10px;
+}
+.hero h1 {
+  font-family: 'JetBrains Mono', monospace; font-size: 2.2rem; line-height: 1.2;
+  color: var(--navy); letter-spacing: -.01em; margin-bottom: 14px;
+}
+.hero .intro {
+  color: var(--ink-mid); font-size: 1.02rem; max-width: 680px; line-height: 1.75;
+}
+.hero-meta {
+  display: grid; grid-template-columns: repeat(4, 1fr);
+  border: 2px solid var(--ink); margin-top: 28px; background: var(--paper-card);
+}
+.hero-meta .cell { padding: 12px 16px; border-right: 1px solid var(--rule); }
+.hero-meta .cell:last-child { border-right: none; }
+.hero-meta .label { font-family: 'JetBrains Mono', monospace; font-size: .62rem; letter-spacing: .15em; text-transform: uppercase; color: var(--ink-soft); margin-bottom: 5px; }
+.hero-meta .val { font-family: 'JetBrains Mono', monospace; font-size: .85rem; font-weight: 700; color: var(--navy); }
+
+/* ── SECTIONS ────────────────────────────────────────── */
+.section { margin-top: 72px; padding-top: 10px; border-top: 2px solid var(--ink); }
+.section > .eyebrow {
+  font-family: 'JetBrains Mono', monospace; font-size: .72rem; letter-spacing: .22em;
+  text-transform: uppercase; color: var(--amber); margin-top: 12px;
+}
+.section > h2 {
+  font-family: 'JetBrains Mono', monospace; font-size: 1.85rem; color: var(--navy);
+  margin: .3em 0 1em; letter-spacing: -.015em;
+}
+h3 {
+  font-family: 'JetBrains Mono', monospace; font-size: 1.1rem; color: var(--navy-light);
+  margin: 2.2em 0 .8em; padding-left: 14px; border-left: 4px solid var(--amber);
+}
+h4 {
+  font-family: 'JetBrains Mono', monospace; font-size: .88rem; text-transform: uppercase;
+  letter-spacing: .08em; color: var(--ink); margin: 1.8em 0 .7em;
+}
+p { margin-bottom: 1em; }
+ul, ol { margin: 0 0 1.2em; padding-left: 1.5em; }
+li { margin-bottom: .45em; }
+strong { color: var(--navy); }
+em { color: var(--ink-mid); }
+
+/* ── TABLES ──────────────────────────────────────────── */
+.table-wrap { overflow-x: auto; margin: 1.4em 0 2em; }
+table { width: 100%; border-collapse: collapse; font-size: .9rem; }
+caption { text-align: left; font-family: 'JetBrains Mono', monospace; font-size: .66rem; letter-spacing: .14em; text-transform: uppercase; color: var(--ink-soft); margin-bottom: 8px; }
+th {
+  background: var(--navy); color: #fff; font-family: 'JetBrains Mono', monospace;
+  font-size: .7rem; text-transform: uppercase; letter-spacing: .07em;
+  text-align: left; padding: 10px 13px;
+}
+td { padding: 10px 13px; border-bottom: 1px solid var(--rule); vertical-align: top; }
+tr:nth-child(even) td { background: rgba(0,0,0,.025); }
+
+/* inline code */
+code {
+  font-family: 'JetBrains Mono', monospace; font-size: .83em;
+  background: #E8E2D5; padding: 1px 6px; border-radius: 3px; color: var(--navy);
+}
+
+/* ── CODE BLOCKS ─────────────────────────────────────── */
+pre {
+  background: var(--code-bg); color: var(--code-text); padding: 20px 24px;
+  border-radius: 6px; overflow-x: auto; font-family: 'JetBrains Mono', monospace;
+  font-size: .82rem; line-height: 1.6; margin: 1.4em 0;
+  border-left: 3px solid var(--amber);
+}
+pre .c { color: var(--code-comment); font-style: italic; }
+pre .k { color: var(--code-key); }
+pre .v { color: var(--code-val); }
+
+/* ── CALLOUTS ────────────────────────────────────────── */
+.callout {
+  padding: 14px 18px; margin: 1.5em 0; border-radius: 0 6px 6px 0;
+  background: var(--paper-card); border-left: 4px solid var(--navy-light);
+  box-shadow: 0 1px 3px rgba(0,0,0,.05);
+}
+.callout.tip  { border-color: var(--p-high); }
+.callout.warn { border-color: var(--p-veryhigh); }
+.callout.stop { border-color: var(--p-critical); }
+.callout .c-tag {
+  display: block; font-family: 'JetBrains Mono', monospace; font-size: .66rem;
+  letter-spacing: .16em; text-transform: uppercase; color: var(--ink-soft); margin-bottom: 6px;
+}
+.callout.tip  .c-tag { color: var(--p-high); }
+.callout.warn .c-tag { color: var(--p-veryhigh); }
+.callout.stop .c-tag { color: var(--p-critical); }
+.callout p:last-child { margin: 0; }
+
+/* ── PRIORITY BADGES ─────────────────────────────────── */
+.badge {
+  display: inline-block; font-family: 'JetBrains Mono', monospace; font-size: .65rem;
+  font-weight: 700; letter-spacing: .1em; padding: 3px 9px; border-radius: 3px;
+  text-transform: uppercase; white-space: nowrap;
+}
+.badge.critical  { background: var(--p-critical-bg);  color: var(--p-critical); border: 1px solid var(--p-critical);  }
+.badge.veryhigh  { background: var(--p-veryhigh-bg);  color: var(--p-veryhigh); border: 1px solid var(--p-veryhigh); }
+.badge.high      { background: var(--p-high-bg);      color: var(--p-high);     border: 1px solid var(--p-high);     }
+.badge.medium    { background: var(--p-medium-bg);    color: var(--p-medium);   border: 1px solid var(--p-medium);   }
+.badge.low       { background: var(--p-low-bg);       color: var(--p-low);      border: 1px solid var(--p-low);      }
+.badge.mvp       { background: #0F2840; color: var(--blue-glow); border: 1px solid rgba(159,211,255,.5); }
+.badge.phase2    { background: transparent; color: var(--ink-soft); border: 1px solid var(--rule); }
+
+/* ── DIAGRAM BOXES ───────────────────────────────────── */
+.diagram-box {
+  background: var(--navy); border: 1px solid rgba(159,211,255,.2);
+  border-radius: 6px; padding: 20px 20px 14px; margin: 1.8em 0; overflow-x: auto;
+}
+.diagram-box .diagram-caption {
+  font-family: 'JetBrains Mono', monospace; font-size: .66rem; letter-spacing: .14em;
+  text-transform: uppercase; color: rgba(159,211,255,.55); text-align: center; margin-top: 12px;
+}
+.diagram-box svg { display: block; width: 100%; }
+
+/* ── FORMULA BOX ─────────────────────────────────────── */
+.formula-box {
+  background: var(--code-bg); border: 1px solid rgba(246,194,122,.3);
+  border-radius: 6px; padding: 22px 24px; margin: 1.6em 0;
+}
+.formula-box .formula-title {
+  font-family: 'JetBrains Mono', monospace; font-size: .7rem; letter-spacing: .16em;
+  text-transform: uppercase; color: var(--amber-light); margin-bottom: 14px;
+}
+.formula-main {
+  font-family: 'JetBrains Mono', monospace; font-size: 1.05rem; color: #fff;
+  background: rgba(255,255,255,.04); padding: 12px 16px; border-radius: 4px;
+  margin-bottom: 16px; line-height: 1.5;
+}
+.formula-grid {
+  display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-top: 14px;
+}
+.formula-factor {
+  background: rgba(255,255,255,.04); padding: 10px 12px; border-radius: 4px;
+  border-top: 2px solid transparent;
+}
+.formula-factor.f1 { border-color: var(--p-critical); }
+.formula-factor.f2 { border-color: var(--p-veryhigh); }
+.formula-factor.f3 { border-color: var(--p-high); }
+.formula-factor.f4 { border-color: var(--p-medium); }
+.formula-factor.f5 { border-color: rgba(159,211,255,.6); }
+.formula-factor.f6 { border-color: var(--p-low); }
+.formula-factor .fname { font-family: 'JetBrains Mono', monospace; font-size: .72rem; color: var(--code-key); letter-spacing: .05em; }
+.formula-factor .fweight { font-family: 'JetBrains Mono', monospace; font-size: 1.1rem; font-weight: 700; color: #fff; }
+.formula-factor .fdesc { font-size: .75rem; color: var(--code-comment); margin-top: 3px; line-height: 1.4; }
+
+/* ── SCHEMA BLOCK ────────────────────────────────────── */
+.schema-block {
+  background: var(--code-bg); border-radius: 6px; padding: 16px 20px;
+  margin: 1em 0; border-left: 3px solid rgba(159,211,255,.35);
+}
+.schema-block .table-name {
+  font-family: 'JetBrains Mono', monospace; font-size: .78rem; font-weight: 700;
+  color: var(--amber-light); letter-spacing: .08em; margin-bottom: 10px;
+  text-transform: uppercase;
+}
+.schema-block .field { display: flex; gap: 10px; padding: 4px 0; border-bottom: 1px solid rgba(255,255,255,.04); font-size: .82rem; }
+.schema-block .field:last-child { border-bottom: none; }
+.schema-block .field .fname { font-family: 'JetBrains Mono', monospace; color: var(--code-key); min-width: 230px; flex-shrink: 0; }
+.schema-block .field .ftype { font-family: 'JetBrains Mono', monospace; color: var(--code-val); min-width: 110px; flex-shrink: 0; }
+.schema-block .field .fnote { color: var(--code-comment); font-style: italic; }
+.schema-block .field .pk { font-family: 'JetBrains Mono', monospace; font-size: .6rem; background: rgba(246,194,122,.15); color: var(--amber-light); padding: 1px 5px; border-radius: 2px; flex-shrink: 0; }
+.schema-block .field .fk { font-family: 'JetBrains Mono', monospace; font-size: .6rem; background: rgba(144,212,168,.1); color: var(--code-val); padding: 1px 5px; border-radius: 2px; flex-shrink: 0; }
+.schema-block .field .idx { font-family: 'JetBrains Mono', monospace; font-size: .6rem; background: rgba(159,211,255,.1); color: var(--blue-glow); padding: 1px 5px; border-radius: 2px; flex-shrink: 0; }
+
+/* ── PIPELINE STEPS ──────────────────────────────────── */
+.pipeline { margin: 1.8em 0; }
+.pipeline-step {
+  display: flex; gap: 0; margin-bottom: 4px; position: relative;
+}
+.pipeline-step::after {
+  content: '↓'; position: absolute; bottom: -16px; left: 27px;
+  font-size: .85rem; color: var(--amber); z-index: 1; font-weight: 700;
+}
+.pipeline-step:last-child::after { display: none; }
+.pipeline-step .step-num {
+  background: var(--amber); color: #fff; font-family: 'JetBrains Mono', monospace;
+  font-weight: 700; font-size: .78rem; min-width: 54px; height: 54px;
+  display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+}
+.pipeline-step.alt .step-num { background: var(--navy-light); }
+.pipeline-step .step-body {
+  background: var(--paper-card); border: 1px solid var(--rule); border-left: none;
+  flex: 1; padding: 10px 16px; min-height: 54px;
+  display: flex; flex-direction: column; justify-content: center;
+}
+.pipeline-step .step-body .stitle { font-weight: 600; font-size: .9rem; color: var(--navy); }
+.pipeline-step .step-body .sdesc { font-size: .82rem; color: var(--ink-mid); margin-top: 2px; }
+.pipeline-step .step-body .stag { font-family: 'JetBrains Mono', monospace; font-size: .65rem; letter-spacing: .1em; text-transform: uppercase; color: var(--ink-soft); margin-top: 4px; }
+
+/* ── PHASE CARDS ─────────────────────────────────────── */
+.phase-card { border: 1px solid var(--rule); border-radius: 6px; margin-bottom: 22px; overflow: hidden; }
+.phase-card .ph-head {
+  background: var(--navy); color: #fff; padding: 11px 18px;
+  display: flex; justify-content: space-between; align-items: center;
+}
+.phase-card .ph-head .ph-title { font-family: 'JetBrains Mono', monospace; font-weight: 700; font-size: .88rem; }
+.phase-card .ph-head .ph-duration { font-family: 'JetBrains Mono', monospace; font-size: .72rem; color: var(--blue-glow); }
+.phase-card .ph-body { padding: 6px 18px 4px; }
+.phase-card table { margin-bottom: 0; }
+
+/* ── PRIORITY DEMO ───────────────────────────────────── */
+.priority-demo { border: 1px solid var(--rule); border-radius: 6px; overflow: hidden; margin: 1.4em 0; }
+.priority-demo .pd-head { background: var(--navy); padding: 10px 16px; font-family: 'JetBrains Mono', monospace; font-size: .72rem; color: var(--blue-glow); letter-spacing: .1em; text-transform: uppercase; }
+.priority-row {
+  display: flex; align-items: center; gap: 14px; padding: 12px 16px;
+  border-bottom: 1px solid var(--rule); background: var(--paper-card);
+}
+.priority-row:last-child { border-bottom: none; }
+.priority-row.critical { border-left: 4px solid var(--p-critical); }
+.priority-row.veryhigh { border-left: 4px solid var(--p-veryhigh); }
+.priority-row.high     { border-left: 4px solid var(--p-high); }
+.priority-row.medium   { border-left: 4px solid var(--p-medium); }
+.priority-row.low      { border-left: 4px solid var(--p-low); }
+.priority-row .pr-score {
+  font-family: 'JetBrains Mono', monospace; font-weight: 700; font-size: 1.15rem;
+  min-width: 52px; text-align: right;
+}
+.priority-row.critical .pr-score { color: var(--p-critical); }
+.priority-row.veryhigh .pr-score { color: var(--p-veryhigh); }
+.priority-row.high     .pr-score { color: var(--p-high); }
+.priority-row.medium   .pr-score { color: var(--p-medium); }
+.priority-row.low      .pr-score { color: var(--p-low); }
+.priority-row .pr-q { flex: 1; font-size: .88rem; color: var(--ink); }
+.priority-row .pr-meta { font-size: .78rem; color: var(--ink-soft); font-family: 'JetBrains Mono', monospace; white-space: nowrap; }
+
+/* ── CHECKLIST ───────────────────────────────────────── */
+.check-list { list-style: none; margin: 0 0 1.5em; }
+.check-list li {
+  padding: 9px 4px 9px 38px; position: relative;
+  border-bottom: 1px dashed var(--rule); font-size: .92rem;
+}
+.check-list li::before {
+  content: ''; position: absolute; left: 0; top: 12px;
+  width: 18px; height: 18px; border: 2px solid var(--navy-light);
+  border-radius: 3px; background: var(--paper-card);
+}
+
+/* ── RISK TABLE ──────────────────────────────────────── */
+.risk-row td:nth-child(2) { font-family: 'JetBrains Mono', monospace; font-size: .78rem; }
+
+/* ── TWO COLUMN GRID ─────────────────────────────────── */
+.two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin: 1.2em 0; }
+.col-card { background: var(--paper-card); border: 1px solid var(--rule); border-radius: 6px; padding: 16px 18px; }
+.col-card h4 { margin-top: 0; }
+
+/* ── FILTER CHIP DEMO ────────────────────────────────── */
+.filter-demo { background: var(--paper-card); border: 1px solid var(--rule); border-radius: 6px; padding: 18px; margin: 1.4em 0; }
+.filter-demo .fd-label { font-family: 'JetBrains Mono', monospace; font-size: .68rem; letter-spacing: .14em; text-transform: uppercase; color: var(--ink-soft); margin-bottom: 10px; }
+.chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.chip {
+  display: inline-flex; align-items: center; gap: 5px;
+  background: #E8E2D5; border: 1px solid var(--rule);
+  font-family: 'JetBrains Mono', monospace; font-size: .73rem;
+  padding: 4px 11px; border-radius: 20px; color: var(--ink-mid); cursor: default;
+}
+.chip.active { background: var(--navy); color: #fff; border-color: var(--navy); }
+.chip .dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
+
+/* ── FOOTER ──────────────────────────────────────────── */
+.doc-footer {
+  margin-top: 80px; padding-top: 24px; border-top: 2px solid var(--ink);
+  font-family: 'JetBrains Mono', monospace; font-size: .75rem;
+  color: var(--ink-soft); display: flex; justify-content: space-between; align-items: center;
+}
+
+@media (max-width: 860px) {
+  .page-grid { grid-template-columns: 1fr; }
+  .sidebar { position: relative; height: auto; }
+  .main { padding: 28px 18px 60px; }
+  .hero h1 { font-size: 1.55rem; }
+  .hero-meta { grid-template-columns: 1fr 1fr; }
+  .formula-grid { grid-template-columns: 1fr 1fr; }
+  .two-col { grid-template-columns: 1fr; }
+}
+</style>
+</head>
+<body>
+<div class="page-grid">
+
+<!-- ═══════════════════ SIDEBAR ═══════════════════════ -->
+<aside class="sidebar">
+  <div class="sb-brand">
+    <div class="logo">PAPERLENS</div>
+    <div class="milestone-badge">Milestone 4</div>
+    <div class="sub">Multi-PDF Analysis Engine<br>Architecture &amp; Implementation Blueprint</div>
+  </div>
+
+  <div class="sb-status">
+    <span class="tag">Completed Milestones</span>
+    <ul>
+      <li>PDF Upload</li>
+      <li>OCR (scanned PDFs)</li>
+      <li>Text extraction</li>
+      <li>Question extraction</li>
+      <li>Question hierarchy</li>
+    </ul>
+  </div>
+
+  <ul class="sb-nav">
+    <li><a href="#arch"><span class="num">01</span>System Architecture</a></li>
+    <li><a href="#db"><span class="num">02</span>Database Design</a></li>
+    <li><a href="#similarity"><span class="num">03</span>Similarity Detection</a></li>
+    <li><a href="#priority"><span class="num">04</span>Priority Scoring Engine</a></li>
+    <li><a href="#pipeline"><span class="num">05</span>Multi-PDF Pipeline</a></li>
+    <li><a href="#dashboard"><span class="num">06</span>Dashboard Architecture</a></li>
+    <li><a href="#ui"><span class="num">07</span>UI Design</a></li>
+    <li><a href="#roadmap"><span class="num">08</span>Development Roadmap</a></li>
+    <li><a href="#risks"><span class="num">09</span>Risk Analysis</a></li>
+    <li><a href="#ai"><span class="num">10</span>Future AI Integration</a></li>
+  </ul>
+
+  <div class="sb-note">
+    <strong>Architect's Focus</strong>
+    The most important decision in this milestone is the data model. Get the <code>question_groups</code> and <code>occurrences</code> tables right before writing any service logic. Everything else depends on that schema.
+  </div>
+</aside>
+
+<!-- ═══════════════════ MAIN ══════════════════════════ -->
+<main class="main">
+
+  <!-- HERO -->
+  <div class="hero">
+    <div class="kicker">PaperLens · Milestone 4 · Architecture Blueprint</div>
+    <h1>Multi-PDF Analysis Engine</h1>
+    <p class="intro">
+      This milestone transforms PaperLens from a PDF parser into a genuine study intelligence platform.
+      A student uploads five years of question papers and gets back a ranked, deduplicated, topic-organized
+      question bank with preparation scores — built without requiring AI for the core analysis logic.
+      This blueprint covers every architectural decision, database schema, algorithm choice, and build order.
+    </p>
+    <div class="hero-meta">
+      <div class="cell"><div class="label">Milestone</div><div class="val">M4 — Analysis Engine</div></div>
+      <div class="cell"><div class="label">Core Idea</div><div class="val">Multi-paper merge + rank</div></div>
+      <div class="cell"><div class="label">Key Algorithm</div><div class="val">Fuzzy similarity + scoring</div></div>
+      <div class="cell"><div class="label">AI Required?</div><div class="val">Optional — MVP works without it</div></div>
+    </div>
+  </div>
+
+
+  <!-- ══════════════════════════════════════════════════ -->
+  <!-- 01  SYSTEM ARCHITECTURE -->
+  <!-- ══════════════════════════════════════════════════ -->
+  <section class="section" id="arch">
+    <div class="eyebrow">Blueprint 01 / 10</div>
+    <h2>System Architecture</h2>
+
+    <p>
+      The Milestone 4 engine adds three new service layers on top of the extraction
+      pipeline you already have. The existing system ends at the point where questions
+      are extracted from a single PDF. Milestone 4 <strong>picks up from that point</strong>
+      and introduces cross-paper reasoning: merging, deduplicating, ranking, and summarizing
+      across any number of uploaded papers.
+    </p>
+
+    <h3>The Two Systems Side by Side</h3>
+    <div class="table-wrap">
+    <table>
+      <caption>Old boundary vs new boundary</caption>
+      <thead><tr><th>Layer</th><th>Was (Before M4)</th><th>Is Now (M4)</th></tr></thead>
+      <tbody>
+        <tr><td><strong>Input</strong></td><td>Single PDF file</td><td>Session of 1–N PDF files (batch)</td></tr>
+        <tr><td><strong>Processing scope</strong></td><td>One paper at a time</td><td>Cross-paper merge and correlation</td></tr>
+        <tr><td><strong>Output</strong></td><td>Flat list of extracted questions per PDF</td><td>Ranked master question bank</td></tr>
+        <tr><td><strong>Deduplication</strong></td><td>None</td><td>Exact + fuzzy similarity grouping</td></tr>
+        <tr><td><strong>Scoring</strong></td><td>None</td><td>Multi-factor priority score (0–100)</td></tr>
+        <tr><td><strong>Analytics</strong></td><td>None</td><td>Frequency, chapter weightage, year trends</td></tr>
+        <tr><td><strong>AI</strong></td><td>None</td><td>Optional enrichment layer (not required for MVP)</td></tr>
+      </tbody>
+    </table>
+    </div>
+
+    <h3>Service Architecture — New Components</h3>
+    <p>
+      Following the layered backend structure from the original blueprint, Milestone 4
+      adds these new service modules. Each is independently testable and talks only to
+      services below it — never sideways.
+    </p>
+    <div class="table-wrap">
+    <table>
+      <caption>New service modules for M4</caption>
+      <thead><tr><th>Service</th><th>Responsibility</th><th>Inputs</th><th>Outputs</th></tr></thead>
+      <tbody>
+        <tr>
+          <td><code>SessionService</code></td>
+          <td>Manages a named "analysis session" (a batch of uploaded papers for one subject/exam)</td>
+          <td>Session metadata, paper IDs</td>
+          <td>Session object with status</td>
+        </tr>
+        <tr>
+          <td><code>MergeService</code></td>
+          <td>Gathers all extracted questions across all papers in a session into a unified pool</td>
+          <td>Session ID</td>
+          <td>Flat question pool (list of normalized question records)</td>
+        </tr>
+        <tr>
+          <td><code>DeduplicationService</code></td>
+          <td>Finds exact duplicates by content hash, groups them</td>
+          <td>Question pool</td>
+          <td>Deduplicated list + occurrence records</td>
+        </tr>
+        <tr>
+          <td><code>SimilarityService</code></td>
+          <td>Detects near-duplicate / semantically similar questions and clusters them</td>
+          <td>Deduplicated question list</td>
+          <td>Similarity clusters with representative questions</td>
+        </tr>
+        <tr>
+          <td><code>TopicClassificationService</code></td>
+          <td>Assigns each question group a topic/chapter tag from user-provided or inferred syllabus</td>
+          <td>Question groups, user context (chapters)</td>
+          <td>Tagged question groups</td>
+        </tr>
+        <tr>
+          <td><code>PriorityScoreService</code></td>
+          <td>Computes priority score (0–100) and tier label for each question group</td>
+          <td>Question groups with occurrence counts, tags</td>
+          <td>Score + label per group</td>
+        </tr>
+        <tr>
+          <td><code>AnalyticsService</code></td>
+          <td>Computes dashboard metrics: frequency distribution, chapter weightage, year trends</td>
+          <td>Scored question groups</td>
+          <td>Aggregated analytics JSON objects</td>
+        </tr>
+        <tr>
+          <td><code>InsightService</code></td>
+          <td>Generates natural-language preparation guidance (optional AI layer)</td>
+          <td>Analytics summary, top question groups</td>
+          <td>Insight text (LLM-generated or rule-based)</td>
+        </tr>
+      </tbody>
+    </table>
+    </div>
+
+    <h3>Full System Data Flow Diagram</h3>
+    <div class="diagram-box">
+      <svg viewBox="0 0 820 460" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <pattern id="g" width="20" height="20" patternUnits="userSpaceOnUse">
+            <path d="M20 0H0V20" fill="none" stroke="#1B3A54" stroke-width=".6"/>
+          </pattern>
+          <marker id="arr" viewBox="0 0 8 8" refX="6" refY="4" markerWidth="5" markerHeight="5" orient="auto">
+            <path d="M0 0L8 4L0 8z" fill="#9FD3FF"/>
+          </marker>
+          <marker id="arr-a" viewBox="0 0 8 8" refX="6" refY="4" markerWidth="5" markerHeight="5" orient="auto">
+            <path d="M0 0L8 4L0 8z" fill="#F6C27A"/>
+          </marker>
+        </defs>
+        <rect width="820" height="460" fill="url(#g)"/>
+
+        <!-- Row labels -->
+        <text x="10" y="82" fill="#6A8EA8" font-family="JetBrains Mono,monospace" font-size="9.5" transform="rotate(-90,10,82)">BROWSER</text>
+        <text x="10" y="196" fill="#6A8EA8" font-family="JetBrains Mono,monospace" font-size="9.5" transform="rotate(-90,10,196)">EXTRACTION</text>
+        <text x="10" y="316" fill="#6A8EA8" font-family="JetBrains Mono,monospace" font-size="9.5" transform="rotate(-90,10,316)">ANALYSIS</text>
+        <text x="10" y="420" fill="#6A8EA8" font-family="JetBrains Mono,monospace" font-size="9.5" transform="rotate(-90,10,420)">OUTPUT</text>
+
+        <!-- Swimlane dividers -->
+        <line x1="24" y1="118" x2="816" y2="118" stroke="#1B3A54" stroke-width="1" stroke-dasharray="4 4"/>
+        <line x1="24" y1="248" x2="816" y2="248" stroke="#1B3A54" stroke-width="1" stroke-dasharray="4 4"/>
+        <line x1="24" y1="374" x2="816" y2="374" stroke="#1B3A54" stroke-width="1" stroke-dasharray="4 4"/>
+
+        <!-- BROWSER ROW -->
+        <rect x="34" y="26" width="130" height="76" rx="3" fill="rgba(159,211,255,.08)" stroke="#9FD3FF" stroke-width="1.2"/>
+        <text x="99" y="58" fill="#fff" font-family="JetBrains Mono,monospace" font-size="11" font-weight="700" text-anchor="middle">UPLOAD UI</text>
+        <text x="99" y="75" fill="#9FD3FF" font-family="JetBrains Mono,monospace" font-size="9.5" text-anchor="middle">Drag N-PDFs</text>
+        <text x="99" y="89" fill="#9FD3FF" font-family="JetBrains Mono,monospace" font-size="9.5" text-anchor="middle">+ year metadata</text>
+
+        <rect x="216" y="26" width="130" height="76" rx="3" fill="rgba(159,211,255,.08)" stroke="#9FD3FF" stroke-width="1.2"/>
+        <text x="281" y="55" fill="#fff" font-family="JetBrains Mono,monospace" font-size="11" font-weight="700" text-anchor="middle">CONTEXT</text>
+        <text x="281" y="70" fill="#fff" font-family="JetBrains Mono,monospace" font-size="11" font-weight="700" text-anchor="middle">FORM</text>
+        <text x="281" y="88" fill="#9FD3FF" font-family="JetBrains Mono,monospace" font-size="9.5" text-anchor="middle">Subject, Chapters…</text>
+
+        <rect x="640" y="26" width="152" height="76" rx="3" fill="rgba(159,211,255,.08)" stroke="#9FD3FF" stroke-width="1.2"/>
+        <text x="716" y="55" fill="#fff" font-family="JetBrains Mono,monospace" font-size="11" font-weight="700" text-anchor="middle">DASHBOARD</text>
+        <text x="716" y="70" fill="#fff" font-family="JetBrains Mono,monospace" font-size="11" font-weight="700" text-anchor="middle">+ QUESTION BANK</text>
+        <text x="716" y="88" fill="#9FD3FF" font-family="JetBrains Mono,monospace" font-size="9.5" text-anchor="middle">Ranked results</text>
+
+        <!-- EXTRACTION ROW -->
+        <rect x="34" y="132" width="130" height="76" rx="3" fill="rgba(159,211,255,.06)" stroke="#9FD3FF" stroke-width="1.2"/>
+        <text x="99" y="162" fill="#fff" font-family="JetBrains Mono,monospace" font-size="11" font-weight="700" text-anchor="middle">BATCH</text>
+        <text x="99" y="177" fill="#fff" font-family="JetBrains Mono,monospace" font-size="11" font-weight="700" text-anchor="middle">PROCESSOR</text>
+        <text x="99" y="193" fill="#9FD3FF" font-family="JetBrains Mono,monospace" font-size="9" text-anchor="middle">Per-PDF pipeline</text>
+
+        <rect x="216" y="132" width="130" height="76" rx="3" fill="rgba(159,211,255,.06)" stroke="#9FD3FF" stroke-width="1.2"/>
+        <text x="281" y="162" fill="#fff" font-family="JetBrains Mono,monospace" font-size="11" font-weight="700" text-anchor="middle">TEXT +</text>
+        <text x="281" y="177" fill="#fff" font-family="JetBrains Mono,monospace" font-size="11" font-weight="700" text-anchor="middle">QUESTIONS</text>
+        <text x="281" y="193" fill="#9FD3FF" font-family="JetBrains Mono,monospace" font-size="9" text-anchor="middle">Existing M1–M3 logic</text>
+
+        <rect x="398" y="132" width="130" height="76" rx="3" fill="rgba(159,211,255,.06)" stroke="#9FD3FF" stroke-width="1.2"/>
+        <text x="463" y="162" fill="#fff" font-family="JetBrains Mono,monospace" font-size="11" font-weight="700" text-anchor="middle">NORMALIZE</text>
+        <text x="463" y="177" fill="#9FD3FF" font-family="JetBrains Mono,monospace" font-size="9" text-anchor="middle">lowercase, strip punct</text>
+        <text x="463" y="191" fill="#9FD3FF" font-family="JetBrains Mono,monospace" font-size="9" text-anchor="middle">hash fingerprint</text>
+
+        <!-- ANALYSIS ROW -->
+        <rect x="34" y="262" width="130" height="76" rx="3" fill="rgba(246,194,122,.07)" stroke="#F6C27A" stroke-width="1.2"/>
+        <text x="99" y="292" fill="#F6C27A" font-family="JetBrains Mono,monospace" font-size="11" font-weight="700" text-anchor="middle">MERGE</text>
+        <text x="99" y="307" fill="#9FD3FF" font-family="JetBrains Mono,monospace" font-size="9" text-anchor="middle">Unified question pool</text>
+        <text x="99" y="321" fill="#9FD3FF" font-family="JetBrains Mono,monospace" font-size="9" text-anchor="middle">across all papers</text>
+
+        <rect x="216" y="262" width="130" height="76" rx="3" fill="rgba(246,194,122,.07)" stroke="#F6C27A" stroke-width="1.2"/>
+        <text x="281" y="292" fill="#F6C27A" font-family="JetBrains Mono,monospace" font-size="11" font-weight="700" text-anchor="middle">DEDUPLICATE</text>
+        <text x="281" y="307" fill="#9FD3FF" font-family="JetBrains Mono,monospace" font-size="9" text-anchor="middle">Exact hash + fuzzy</text>
+        <text x="281" y="321" fill="#9FD3FF" font-family="JetBrains Mono,monospace" font-size="9" text-anchor="middle">→ question_groups</text>
+
+        <rect x="398" y="262" width="130" height="76" rx="3" fill="rgba(246,194,122,.07)" stroke="#F6C27A" stroke-width="1.2"/>
+        <text x="463" y="285" fill="#F6C27A" font-family="JetBrains Mono,monospace" font-size="11" font-weight="700" text-anchor="middle">CLASSIFY</text>
+        <text x="463" y="300" fill="#F6C27A" font-family="JetBrains Mono,monospace" font-size="11" font-weight="700" text-anchor="middle">TOPICS</text>
+        <text x="463" y="317" fill="#9FD3FF" font-family="JetBrains Mono,monospace" font-size="9" text-anchor="middle">Keyword rules</text>
+        <text x="463" y="331" fill="#9FD3FF" font-family="JetBrains Mono,monospace" font-size="9" text-anchor="middle">+ user chapters</text>
+
+        <rect x="580" y="262" width="130" height="76" rx="3" fill="rgba(246,194,122,.07)" stroke="#F6C27A" stroke-width="1.2"/>
+        <text x="645" y="285" fill="#F6C27A" font-family="JetBrains Mono,monospace" font-size="11" font-weight="700" text-anchor="middle">PRIORITY</text>
+        <text x="645" y="300" fill="#F6C27A" font-family="JetBrains Mono,monospace" font-size="11" font-weight="700" text-anchor="middle">SCORE</text>
+        <text x="645" y="317" fill="#9FD3FF" font-family="JetBrains Mono,monospace" font-size="9" text-anchor="middle">6-factor formula</text>
+        <text x="645" y="331" fill="#9FD3FF" font-family="JetBrains Mono,monospace" font-size="9" text-anchor="middle">→ 0-100 score</text>
+
+        <!-- OUTPUT ROW -->
+        <rect x="34" y="388" width="130" height="62" rx="3" fill="rgba(159,211,255,.06)" stroke="#9FD3FF" stroke-width="1.2"/>
+        <text x="99" y="416" fill="#fff" font-family="JetBrains Mono,monospace" font-size="11" font-weight="700" text-anchor="middle">QUESTION</text>
+        <text x="99" y="431" fill="#fff" font-family="JetBrains Mono,monospace" font-size="11" font-weight="700" text-anchor="middle">BANK API</text>
+
+        <rect x="216" y="388" width="130" height="62" rx="3" fill="rgba(159,211,255,.06)" stroke="#9FD3FF" stroke-width="1.2"/>
+        <text x="281" y="416" fill="#fff" font-family="JetBrains Mono,monospace" font-size="11" font-weight="700" text-anchor="middle">ANALYTICS</text>
+        <text x="281" y="431" fill="#fff" font-family="JetBrains Mono,monospace" font-size="11" font-weight="700" text-anchor="middle">API</text>
+
+        <rect x="398" y="388" width="130" height="62" rx="3" fill="rgba(159,211,255,.06)" stroke="#9FD3FF" stroke-width="1.2"/>
+        <text x="463" y="416" fill="#fff" font-family="JetBrains Mono,monospace" font-size="11" font-weight="700" text-anchor="middle">INSIGHTS</text>
+        <text x="463" y="431" fill="#fff" font-family="JetBrains Mono,monospace" font-size="11" font-weight="700" text-anchor="middle">API</text>
+
+        <!-- Arrows BROWSER → EXTRACTION -->
+        <line x1="99" y1="102" x2="99" y2="130" stroke="#9FD3FF" stroke-width="1.4" marker-end="url(#arr)"/>
+        <line x1="281" y1="102" x2="281" y2="130" stroke="#9FD3FF" stroke-width="1.4" marker-end="url(#arr)"/>
+        <line x1="164" y1="170" x2="214" y2="170" stroke="#9FD3FF" stroke-width="1.4" marker-end="url(#arr)"/>
+        <line x1="346" y1="170" x2="396" y2="170" stroke="#9FD3FF" stroke-width="1.4" marker-end="url(#arr)"/>
+
+        <!-- EXTRACTION → ANALYSIS -->
+        <line x1="463" y1="208" x2="463" y2="260" stroke="#9FD3FF" stroke-width="1.4" marker-end="url(#arr)"/>
+        <line x1="99" y1="208" x2="99" y2="260" stroke="#9FD3FF" stroke-width="1.4" marker-end="url(#arr)"/>
+        <line x1="164" y1="300" x2="214" y2="300" stroke="#F6C27A" stroke-width="1.4" marker-end="url(#arr-a)"/>
+        <line x1="346" y1="300" x2="396" y2="300" stroke="#F6C27A" stroke-width="1.4" marker-end="url(#arr-a)"/>
+        <line x1="528" y1="300" x2="578" y2="300" stroke="#F6C27A" stroke-width="1.4" marker-end="url(#arr-a)"/>
+
+        <!-- ANALYSIS → OUTPUT -->
+        <line x1="99" y1="338" x2="99" y2="386" stroke="#F6C27A" stroke-width="1.4" marker-end="url(#arr-a)"/>
+        <line x1="281" y1="338" x2="281" y2="386" stroke="#F6C27A" stroke-width="1.4" marker-end="url(#arr-a)"/>
+        <line x1="463" y1="338" x2="463" y2="386" stroke="#F6C27A" stroke-width="1.4" marker-end="url(#arr-a)"/>
+
+        <!-- OUTPUT → DASHBOARD (browser) -->
+        <path d="M 645 338 C 645 354 716 360 716 102" fill="none" stroke="#9FD3FF" stroke-width="1.4" stroke-dasharray="5 3" marker-end="url(#arr)"/>
+      </svg>
+      <div class="diagram-caption">Fig 1.1 — Full M4 data flow across swimlanes (blue = existing, amber = new M4 services)</div>
+    </div>
+
+    <h3>User Context Metadata Flow</h3>
+    <p>
+      The optional context form (subject, exam name, chapter list) is not just a UI nicety.
+      It directly improves three services downstream. When provided, it acts as a
+      <strong>precision booster</strong> — the same questions get better topic tags, more
+      relevant priority weights, and more accurate insight generation.
+    </p>
+    <div class="table-wrap">
+    <table>
+      <thead><tr><th>Context Field</th><th>How It Improves Analysis</th><th>Without It</th></tr></thead>
+      <tbody>
+        <tr><td><code>chapters</code> (list)</td><td>Topic classification uses exact chapter names instead of generic keywords. "Banker's Algorithm" maps to "Deadlocks" precisely.</td><td>Falls back to broad keyword matching — more errors, more "Unclassified" tags</td></tr>
+        <tr><td><code>examType</code> (mid-sem / end-sem)</td><td>Recency weight in priority scoring adjusts: end-sem papers get higher recency multiplier</td><td>All papers weighted equally</td></tr>
+        <tr><td><code>totalMarks</code></td><td>Normalizes the "marks" factor in priority scoring (10/70 vs 10/100 are different)</td><td>Raw mark counts used, which skews comparisons across differently-structured papers</td></tr>
+        <tr><td><code>questionPattern</code></td><td>Helps segment questions by type (if pattern says "Part A = MCQ, Part B = 5-mark descriptive")</td><td>Type inference falls back to heuristics only</td></tr>
+        <tr><td><code>subject</code></td><td>AI insight generation produces subject-specific guidance rather than generic advice</td><td>Generic guidance ("study frequently repeated topics")</td></tr>
+      </tbody>
+    </table>
+    </div>
+  </section>
+
+
+  <!-- ══════════════════════════════════════════════════ -->
+  <!-- 02  DATABASE DESIGN -->
+  <!-- ══════════════════════════════════════════════════ -->
+  <section class="section" id="db">
+    <div class="eyebrow">Blueprint 02 / 10</div>
+    <h2>Database Design</h2>
+
+    <p>
+      The database schema is the single most important engineering decision in this milestone.
+      Get this right before writing a single line of service code. The key insight is the
+      distinction between a <strong>raw question</strong> (one occurrence in one PDF) and a
+      <strong>question group</strong> (the canonical, deduplicated record that aggregates all
+      occurrences). Everything — priority scores, frequency counts, year trends — is computed
+      from the group, not from individual questions.
+    </p>
+
+    <div class="callout warn">
+      <span class="c-tag">Architect's Decision</span>
+      <p>
+        Do NOT store frequency counts as a column that you update incrementally. Compute them
+        from a <code>COUNT(*)</code> over the <code>question_occurrences</code> table every time.
+        Precomputed counts get out of sync when papers are deleted or re-uploaded. Compute on read;
+        cache when it becomes slow (it won't for student-scale data).
+      </p>
+    </div>
+
+    <h3>Entity Relationship Overview</h3>
+    <div class="diagram-box">
+      <svg viewBox="0 0 780 310" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <pattern id="g2" width="20" height="20" patternUnits="userSpaceOnUse">
+            <path d="M20 0H0V20" fill="none" stroke="#1B3A54" stroke-width=".6"/>
+          </pattern>
+          <marker id="arr2" viewBox="0 0 8 8" refX="6" refY="4" markerWidth="5" markerHeight="5" orient="auto">
+            <path d="M0 0L8 4L0 8z" fill="#9FD3FF"/>
+          </marker>
+        </defs>
+        <rect width="780" height="310" fill="url(#g2)"/>
+
+        <!-- user_context -->
+        <rect x="18" y="30" width="150" height="60" rx="3" fill="rgba(246,194,122,.08)" stroke="#F6C27A" stroke-width="1.2"/>
+        <text x="93" y="56" fill="#F6C27A" font-family="JetBrains Mono,monospace" font-size="10.5" font-weight="700" text-anchor="middle">user_context</text>
+        <text x="93" y="75" fill="#9FD3FF" font-family="JetBrains Mono,monospace" font-size="9" text-anchor="middle">id · subject · exam_type</text>
+
+        <!-- analysis_sessions -->
+        <rect x="200" y="30" width="160" height="60" rx="3" fill="rgba(159,211,255,.07)" stroke="#9FD3FF" stroke-width="1.2"/>
+        <text x="280" y="56" fill="#fff" font-family="JetBrains Mono,monospace" font-size="10.5" font-weight="700" text-anchor="middle">analysis_sessions</text>
+        <text x="280" y="75" fill="#9FD3FF" font-family="JetBrains Mono,monospace" font-size="9" text-anchor="middle">id · name · status · context_id</text>
+
+        <!-- papers -->
+        <rect x="390" y="30" width="150" height="60" rx="3" fill="rgba(159,211,255,.07)" stroke="#9FD3FF" stroke-width="1.2"/>
+        <text x="465" y="56" fill="#fff" font-family="JetBrains Mono,monospace" font-size="10.5" font-weight="700" text-anchor="middle">papers</text>
+        <text x="465" y="75" fill="#9FD3FF" font-family="JetBrains Mono,monospace" font-size="9" text-anchor="middle">id · filename · year · session_id</text>
+
+        <!-- raw_questions -->
+        <rect x="570" y="30" width="190" height="60" rx="3" fill="rgba(159,211,255,.07)" stroke="#9FD3FF" stroke-width="1.2"/>
+        <text x="665" y="52" fill="#fff" font-family="JetBrains Mono,monospace" font-size="10.5" font-weight="700" text-anchor="middle">raw_questions</text>
+        <text x="665" y="67" fill="#9FD3FF" font-family="JetBrains Mono,monospace" font-size="9" text-anchor="middle">id · paper_id · question_text</text>
+        <text x="665" y="81" fill="#9FD3FF" font-family="JetBrains Mono,monospace" font-size="9" text-anchor="middle">marks · section · type</text>
+
+        <!-- topics -->
+        <rect x="18" y="210" width="150" height="60" rx="3" fill="rgba(159,211,255,.07)" stroke="#9FD3FF" stroke-width="1.2"/>
+        <text x="93" y="236" fill="#fff" font-family="JetBrains Mono,monospace" font-size="10.5" font-weight="700" text-anchor="middle">topics</text>
+        <text x="93" y="255" fill="#9FD3FF" font-family="JetBrains Mono,monospace" font-size="9" text-anchor="middle">id · name · chapter_no · context_id</text>
+
+        <!-- question_groups -->
+        <rect x="245" y="165" width="290" height="110" rx="3" fill="rgba(246,194,122,.1)" stroke="#F6C27A" stroke-width="1.8"/>
+        <text x="390" y="191" fill="#F6C27A" font-family="JetBrains Mono,monospace" font-size="11.5" font-weight="700" text-anchor="middle">question_groups  ←  CORE TABLE</text>
+        <text x="390" y="209" fill="#9FD3FF" font-family="JetBrains Mono,monospace" font-size="9" text-anchor="middle">id · canonical_text · content_hash</text>
+        <text x="390" y="224" fill="#9FD3FF" font-family="JetBrains Mono,monospace" font-size="9" text-anchor="middle">topic_id · priority_score · priority_level</text>
+        <text x="390" y="239" fill="#9FD3FF" font-family="JetBrains Mono,monospace" font-size="9" text-anchor="middle">first_year · last_year · cluster_id</text>
+        <text x="390" y="254" fill="#9FD3FF" font-family="JetBrains Mono,monospace" font-size="9" text-anchor="middle">avg_marks · session_id</text>
+
+        <!-- question_occurrences -->
+        <rect x="570" y="175" width="190" height="80" rx="3" fill="rgba(159,211,255,.07)" stroke="#9FD3FF" stroke-width="1.2"/>
+        <text x="665" y="202" fill="#fff" font-family="JetBrains Mono,monospace" font-size="10.5" font-weight="700" text-anchor="middle">question_occurrences</text>
+        <text x="665" y="219" fill="#9FD3FF" font-family="JetBrains Mono,monospace" font-size="9" text-anchor="middle">id · group_id · raw_question_id</text>
+        <text x="665" y="234" fill="#9FD3FF" font-family="JetBrains Mono,monospace" font-size="9" text-anchor="middle">paper_id · year</text>
+
+        <!-- Relationship lines -->
+        <line x1="168" y1="60" x2="198" y2="60" stroke="#F6C27A" stroke-width="1.2" marker-end="url(#arr2)"/>
+        <line x1="360" y1="60" x2="388" y2="60" stroke="#9FD3FF" stroke-width="1.2" marker-end="url(#arr2)"/>
+        <line x1="540" y1="60" x2="568" y2="60" stroke="#9FD3FF" stroke-width="1.2" marker-end="url(#arr2)"/>
+        <line x1="665" y1="90" x2="665" y2="173" stroke="#9FD3FF" stroke-width="1.2" marker-end="url(#arr2)"/>
+        <line x1="535" y1="215" x2="568" y2="215" stroke="#F6C27A" stroke-width="1.2" marker-end="url(#arr2)"/>
+        <line x1="168" y1="240" x2="243" y2="220" stroke="#9FD3FF" stroke-width="1.2" marker-end="url(#arr2)"/>
+        <line x1="390" y1="92" x2="390" y2="163" stroke="#9FD3FF" stroke-width="1.2" stroke-dasharray="4 3" marker-end="url(#arr2)"/>
+      </svg>
+      <div class="diagram-caption">Fig 2.1 — Entity Relationship Diagram. The question_groups table is the center of gravity for all analysis.</div>
+    </div>
+
+    <h3>Table Schemas</h3>
+
+    <div class="schema-block">
+      <div class="table-name">analysis_sessions</div>
+      <div class="field"><span class="fname">id</span><span class="ftype">UUID</span><span class="pk">PK</span><span class="fnote">Generated unique ID for each batch upload session</span></div>
+      <div class="field"><span class="fname">name</span><span class="ftype">VARCHAR(200)</span><span class="fnote">User-given name e.g. "OS Exam 2020–2024"</span></div>
+      <div class="field"><span class="fname">status</span><span class="ftype">ENUM</span><span class="fnote">pending | processing | completed | failed</span></div>
+      <div class="field"><span class="fname">context_id</span><span class="ftype">UUID</span><span class="fk">FK → user_context</span><span class="fnote">Nullable — context is optional</span></div>
+      <div class="field"><span class="fname">created_at</span><span class="ftype">TIMESTAMP</span><span class="fnote">Auto-set on insert</span></div>
+      <div class="field"><span class="fname">completed_at</span><span class="ftype">TIMESTAMP</span><span class="fnote">Set when all processing finishes</span></div>
+    </div>
+
+    <div class="schema-block">
+      <div class="table-name">papers</div>
+      <div class="field"><span class="fname">id</span><span class="ftype">UUID</span><span class="pk">PK</span></div>
+      <div class="field"><span class="fname">session_id</span><span class="ftype">UUID</span><span class="fk">FK → analysis_sessions</span></div>
+      <div class="field"><span class="fname">filename</span><span class="ftype">VARCHAR(300)</span><span class="fnote">Original uploaded filename</span></div>
+      <div class="field"><span class="fname">year</span><span class="ftype">INTEGER</span><span class="idx">IDX</span><span class="fnote">Extracted from filename or provided by user; critical for recency scoring</span></div>
+      <div class="field"><span class="fname">file_path</span><span class="ftype">TEXT</span><span class="fnote">Relative path to stored PDF file</span></div>
+      <div class="field"><span class="fname">content_hash</span><span class="ftype">CHAR(64)</span><span class="idx">IDX</span><span class="fnote">SHA-256 of file bytes — idempotency guard against duplicate uploads</span></div>
+      <div class="field"><span class="fname">total_pages</span><span class="ftype">INTEGER</span></div>
+      <div class="field"><span class="fname">total_questions</span><span class="ftype">INTEGER</span><span class="fnote">Set after extraction completes</span></div>
+      <div class="field"><span class="fname">extraction_status</span><span class="ftype">ENUM</span><span class="fnote">queued | extracting | extracted | failed</span></div>
+    </div>
+
+    <div class="schema-block">
+      <div class="table-name">raw_questions</div>
+      <div class="field"><span class="fname">id</span><span class="ftype">UUID</span><span class="pk">PK</span></div>
+      <div class="field"><span class="fname">paper_id</span><span class="ftype">UUID</span><span class="fk">FK → papers</span><span class="idx">IDX</span></div>
+      <div class="field"><span class="fname">question_text</span><span class="ftype">TEXT</span><span class="fnote">Verbatim extracted text, whitespace normalized</span></div>
+      <div class="field"><span class="fname">question_text_normalized</span><span class="ftype">TEXT</span><span class="fnote">Lowercase, punctuation stripped — used for hashing and fuzzy matching</span></div>
+      <div class="field"><span class="fname">content_hash</span><span class="ftype">CHAR(64)</span><span class="idx">IDX</span><span class="fnote">SHA-256 of normalized text — the primary exact-duplicate key</span></div>
+      <div class="field"><span class="fname">marks</span><span class="ftype">NUMERIC(5,2)</span><span class="fnote">Extracted from paper; nullable if not parseable</span></div>
+      <div class="field"><span class="fname">section</span><span class="ftype">VARCHAR(50)</span><span class="fnote">E.g. "Part A", "Section B", "Unit 2"</span></div>
+      <div class="field"><span class="fname">question_type</span><span class="ftype">ENUM</span><span class="fnote">short | long | mcq | fill_in_blank | numerical</span></div>
+      <div class="field"><span class="fname">question_number</span><span class="ftype">VARCHAR(20)</span><span class="fnote">Original label from paper: "Q3(b)", "1.iv", etc.</span></div>
+      <div class="field"><span class="fname">page_number</span><span class="ftype">INTEGER</span></div>
+      <div class="field"><span class="fname">group_id</span><span class="ftype">UUID</span><span class="fk">FK → question_groups</span><span class="idx">IDX</span><span class="fnote">Null until deduplication runs</span></div>
+    </div>
+
+    <div class="schema-block">
+      <div class="table-name">question_groups  ← THE CORE TABLE</div>
+      <div class="field"><span class="fname">id</span><span class="ftype">UUID</span><span class="pk">PK</span></div>
+      <div class="field"><span class="fname">session_id</span><span class="ftype">UUID</span><span class="fk">FK → analysis_sessions</span><span class="idx">IDX</span></div>
+      <div class="field"><span class="fname">canonical_text</span><span class="ftype">TEXT</span><span class="fnote">The clearest/most complete wording of the question (chosen from all occurrences)</span></div>
+      <div class="field"><span class="fname">cluster_id</span><span class="ftype">UUID</span><span class="fk">FK → similarity_clusters</span><span class="fnote">Groups of semantically similar but not identical question groups</span></div>
+      <div class="field"><span class="fname">topic_id</span><span class="ftype">UUID</span><span class="fk">FK → topics</span><span class="idx">IDX</span></div>
+      <div class="field"><span class="fname">avg_marks</span><span class="ftype">NUMERIC(5,2)</span><span class="fnote">Average marks across all occurrences</span></div>
+      <div class="field"><span class="fname">max_marks</span><span class="ftype">NUMERIC(5,2)</span></div>
+      <div class="field"><span class="fname">first_year</span><span class="ftype">INTEGER</span><span class="fnote">Earliest year this question appeared</span></div>
+      <div class="field"><span class="fname">last_year</span><span class="ftype">INTEGER</span><span class="idx">IDX</span><span class="fnote">Most recent year — the primary recency signal</span></div>
+      <div class="field"><span class="fname">year_span</span><span class="ftype">INTEGER</span><span class="fnote">last_year − first_year. Broader span = more consistently asked</span></div>
+      <div class="field"><span class="fname">priority_score</span><span class="ftype">NUMERIC(5,2)</span><span class="idx">IDX</span><span class="fnote">0.00–100.00, computed by PriorityScoreService</span></div>
+      <div class="field"><span class="fname">priority_level</span><span class="ftype">ENUM</span><span class="idx">IDX</span><span class="fnote">critical | very_high | high | medium | low</span></div>
+      <div class="field"><span class="fname">question_types</span><span class="ftype">JSON</span><span class="fnote">Array of question types across all occurrences e.g. ["long","long","short"]</span></div>
+      <div class="field"><span class="fname">score_computed_at</span><span class="ftype">TIMESTAMP</span><span class="fnote">Stale-detection: recompute if new papers are added to session</span></div>
+    </div>
+
+    <div class="schema-block">
+      <div class="table-name">question_occurrences</div>
+      <div class="field"><span class="fname">id</span><span class="ftype">UUID</span><span class="pk">PK</span></div>
+      <div class="field"><span class="fname">group_id</span><span class="ftype">UUID</span><span class="fk">FK → question_groups</span><span class="idx">IDX</span></div>
+      <div class="field"><span class="fname">raw_question_id</span><span class="ftype">UUID</span><span class="fk">FK → raw_questions</span></div>
+      <div class="field"><span class="fname">paper_id</span><span class="ftype">UUID</span><span class="fk">FK → papers</span><span class="idx">IDX</span></div>
+      <div class="field"><span class="fname">year</span><span class="ftype">INTEGER</span><span class="idx">IDX</span><span class="fnote">Denormalized from papers.year for fast GROUP BY year queries</span></div>
+      <div class="field"><span class="fname">marks</span><span class="ftype">NUMERIC(5,2)</span><span class="fnote">Marks in this specific occurrence (may differ across years)</span></div>
+    </div>
+
+    <div class="schema-block">
+      <div class="table-name">similarity_clusters</div>
+      <div class="field"><span class="fname">id</span><span class="ftype">UUID</span><span class="pk">PK</span></div>
+      <div class="field"><span class="fname">session_id</span><span class="ftype">UUID</span><span class="fk">FK → analysis_sessions</span></div>
+      <div class="field"><span class="fname">representative_group_id</span><span class="ftype">UUID</span><span class="fk">FK → question_groups</span><span class="fnote">The "best" question that represents the whole cluster</span></div>
+      <div class="field"><span class="fname">method</span><span class="ftype">ENUM</span><span class="fnote">fuzzy | tfidf | embedding — records which algorithm created this cluster</span></div>
+      <div class="field"><span class="fname">similarity_threshold</span><span class="ftype">NUMERIC(4,3)</span><span class="fnote">E.g. 0.82 — the threshold used when this cluster was computed</span></div>
+      <div class="field"><span class="fname">group_count</span><span class="ftype">INTEGER</span><span class="fnote">Number of question_groups in this cluster — used as a scoring factor</span></div>
+    </div>
+
+    <div class="schema-block">
+      <div class="table-name">user_context</div>
+      <div class="field"><span class="fname">id</span><span class="ftype">UUID</span><span class="pk">PK</span></div>
+      <div class="field"><span class="fname">subject</span><span class="ftype">VARCHAR(200)</span><span class="fnote">E.g. "Operating Systems"</span></div>
+      <div class="field"><span class="fname">exam_name</span><span class="ftype">VARCHAR(200)</span><span class="fnote">E.g. "Mid-Semester Exam"</span></div>
+      <div class="field"><span class="fname">exam_type</span><span class="ftype">ENUM</span><span class="fnote">mid_sem | end_sem | internal | competitive</span></div>
+      <div class="field"><span class="fname">total_marks</span><span class="ftype">INTEGER</span><span class="fnote">Used to normalize marks-based scoring</span></div>
+      <div class="field"><span class="fname">question_pattern</span><span class="ftype">TEXT</span><span class="fnote">Free-text description of exam format</span></div>
+      <div class="field"><span class="fname">chapters</span><span class="ftype">JSON</span><span class="fnote">Array of chapter names: ["Process Management","CPU Scheduling",…]</span></div>
+    </div>
+
+    <div class="schema-block">
+      <div class="table-name">topics</div>
+      <div class="field"><span class="fname">id</span><span class="ftype">UUID</span><span class="pk">PK</span></div>
+      <div class="field"><span class="fname">context_id</span><span class="ftype">UUID</span><span class="fk">FK → user_context</span><span class="fnote">Nullable — auto-generated topics if no context given</span></div>
+      <div class="field"><span class="fname">name</span><span class="ftype">VARCHAR(200)</span><span class="fnote">E.g. "CPU Scheduling"</span></div>
+      <div class="field"><span class="fname">chapter_number</span><span class="ftype">INTEGER</span><span class="fnote">Used for UI ordering and chapter weightage chart</span></div>
+      <div class="field"><span class="fname">keywords</span><span class="ftype">JSON</span><span class="fnote">Array of trigger words: ["round robin","scheduler","context switch",…]</span></div>
+    </div>
+
+    <h3>Key Indexes to Define</h3>
+    <p>These are the queries that will run most often. Define these indexes from the start — not as an optimization afterthought.</p>
+    <div class="table-wrap">
+    <table>
+      <thead><tr><th>Index On</th><th>Query It Supports</th></tr></thead>
+      <tbody>
+        <tr><td><code>question_groups(session_id, priority_score DESC)</code></td><td>The main question bank list, sorted by priority</td></tr>
+        <tr><td><code>question_groups(topic_id)</code></td><td>Filter question bank by topic/chapter</td></tr>
+        <tr><td><code>question_occurrences(group_id)</code></td><td>Count occurrences per group (used by analytics)</td></tr>
+        <tr><td><code>question_occurrences(year)</code></td><td>Year-wise trend queries</td></tr>
+        <tr><td><code>raw_questions(content_hash)</code></td><td>Exact duplicate detection — the most frequent lookup in deduplication</td></tr>
+        <tr><td><code>papers(content_hash)</code></td><td>Prevent re-processing a PDF that's already been uploaded</td></tr>
+      </tbody>
+    </table>
+    </div>
+  </section>
+
+
+  <!-- ══════════════════════════════════════════════════ -->
+  <!-- 03  SIMILARITY DETECTION -->
+  <!-- ══════════════════════════════════════════════════ -->
+  <section class="section" id="similarity">
+    <div class="eyebrow">Blueprint 03 / 10</div>
+    <h2>Similarity Detection Strategy</h2>
+
+    <p>
+      This is the most technically interesting part of Milestone 4 and also the area where
+      many beginner implementations fall apart. The core challenge: two questions about the
+      same concept may share only 30% of the same words. A naive string-match approach will
+      miss them entirely. But jumping straight to embeddings means introducing an external
+      API dependency (cost, latency) for a feature that a well-tuned fuzzy matcher handles
+      well at student-scale data volumes.
+    </p>
+    <p>
+      The recommended approach is a <strong>three-phase strategy</strong> where each phase
+      is optional and builds on the last. Build Phase 1 for the MVP. Add Phase 2 once you
+      have real test data to validate with. Reserve Phase 3 for when you have thousands of
+      questions and Phase 2 starts slowing down.
+    </p>
+
+    <h3>Phase 1 — Exact Deduplication + Fuzzy Matching (Build Now)</h3>
+    <p>
+      These two steps cover 80% of the duplicate/similar-question problem for typical
+      exam papers. They require no AI API calls, no external models, and they run fast
+      even on modest hardware.
+    </p>
+
+    <h4>Step 1A: Exact Deduplication via Content Hash</h4>
+    <p>
+      Before any fuzzy work, normalize every question's text and compute a SHA-256 hash.
+      Any two questions with the same hash are guaranteed identical. Group them instantly.
+      Normalization steps:
+    </p>
+    <ol>
+      <li>Convert to lowercase</li>
+      <li>Strip all punctuation except parentheses around sub-question labels</li>
+      <li>Collapse all whitespace (tabs, multiple spaces, newlines) to a single space</li>
+      <li>Trim leading/trailing whitespace</li>
+      <li>Strip common question prefixes: "Q.", "Question:", "Q1.", "(a)", etc.</li>
+    </ol>
+    <div class="callout tip">
+      <span class="c-tag">Why this order?</span>
+      <p>Always run exact deduplication <em>before</em> fuzzy matching. This drastically
+      reduces the number of question pairs that the slower fuzzy comparison needs to process.
+      If you have 200 questions and 40 are exact duplicates, fuzzy matching only needs to
+      process ~160 questions, not 200.</p>
+    </div>
+
+    <h4>Step 1B: Fuzzy String Matching (RapidFuzz)</h4>
+    <p>
+      For questions that are <em>not</em> exact matches, use the <code>RapidFuzz</code>
+      library (a fast Python implementation of the Levenshtein-based fuzzy matching
+      algorithm). The recommended metric is <strong>token_set_ratio</strong>, not the
+      basic ratio — it handles word order differences well, which matters for exam questions.
+    </p>
+    <div class="table-wrap">
+    <table>
+      <caption>Fuzzy metric comparison</caption>
+      <thead><tr><th>Metric</th><th>What It Measures</th><th>Use Case</th></tr></thead>
+      <tbody>
+        <tr><td><code>ratio</code></td><td>Character-level edit distance. Very sensitive to word order.</td><td>Typo detection. Not good for paraphrased questions.</td></tr>
+        <tr><td><code>partial_ratio</code></td><td>Best matching substring. Good for short strings inside long ones.</td><td>Sub-question matching within parent questions.</td></tr>
+        <tr><td><code>token_sort_ratio</code></td><td>Sorts tokens alphabetically first, then compares. Handles word-order variation.</td><td>Good for short questions (fewer than 10 words).</td></tr>
+        <tr><td><code>token_set_ratio</code> ✓</td><td>Splits into intersection + remainder, compares best combination. Most robust to paraphrasing.</td><td><strong>Recommended for PYQ questions.</strong> Handles "Explain X" vs "Discuss the working of X".</td></tr>
+      </tbody>
+    </table>
+    </div>
+    <p>
+      <strong>Recommended threshold: 82–87.</strong> Below 82, too many false positives
+      (unrelated questions grouped together). Above 87, too many false negatives (similar
+      questions missed). This range is a starting point — validate with your actual test data
+      and adjust. Log all "boundary" matches (score 80–90) for manual review during testing.
+    </p>
+    <p>
+      <strong>Performance note:</strong> Comparing every question against every other question
+      is O(n²). For 500 questions that's 125,000 comparisons — fast. For 5,000 questions that's
+      12.5 million — slow. Use RapidFuzz's <code>process.cdist</code> with a score cutoff and
+      workers argument for parallel processing. This will be fine for all realistic student
+      use cases.
+    </p>
+
+    <h3>Phase 2 — TF-IDF + Cosine Similarity (Add for Richer Grouping)</h3>
+    <p>
+      TF-IDF (Term Frequency–Inverse Document Frequency) converts each question into a
+      vector based on word importance across the entire question collection. Cosine similarity
+      then measures the angle between two vectors — independent of question length. This
+      catches paraphrases that fuzzy string matching misses because it ignores common words
+      ("the", "of", "what") and amplifies domain-specific terms ("deadlock", "semaphore").
+    </p>
+
+    <div class="table-wrap">
+    <table>
+      <caption>Fuzzy matching vs TF-IDF cosine similarity</caption>
+      <thead><tr><th></th><th>RapidFuzz (Phase 1)</th><th>TF-IDF Cosine (Phase 2)</th></tr></thead>
+      <tbody>
+        <tr><td><strong>Library</strong></td><td><code>rapidfuzz</code></td><td><code>scikit-learn</code> (TfidfVectorizer)</td></tr>
+        <tr><td><strong>Requires ML model?</strong></td><td>No</td><td>No — pure math</td></tr>
+        <tr><td><strong>External API?</strong></td><td>No</td><td>No</td></tr>
+        <tr><td><strong>Handles word-order variation</strong></td><td>Partially (token_set_ratio)</td><td>Yes — words are just a bag</td></tr>
+        <tr><td><strong>Handles paraphrasing</strong></td><td>Poorly ("Explain" vs "Discuss")</td><td>Better — word importance weighting</td></tr>
+        <tr><td><strong>Handles semantic meaning</strong></td><td>No</td><td>No — only word overlap, not meaning</td></tr>
+        <tr><td><strong>Speed on 1,000 questions</strong></td><td>~0.2 seconds</td><td>~0.8 seconds (vectorization + cosine)</td></tr>
+        <tr><td><strong>Build complexity</strong></td><td>Low</td><td>Low-medium (scikit-learn is well-documented)</td></tr>
+      </tbody>
+    </table>
+    </div>
+    <p>
+      Recommended hybrid: run fuzzy first, flag any question pairs it didn't group but TF-IDF
+      cosine similarity scores above 0.65 as "candidate similar — needs review". These can be
+      auto-grouped or presented to the user as suggestions.
+    </p>
+
+    <h3>Phase 3 — Sentence Embeddings (Future Enhancement)</h3>
+    <p>
+      Embeddings transform a sentence into a dense vector in a high-dimensional semantic space.
+      Two sentences with similar <em>meaning</em> — even with completely different words —
+      end up close together in this space. This is the only approach that can catch truly
+      paraphrased questions.
+    </p>
+    <div class="table-wrap">
+    <table>
+      <caption>Embedding options comparison</caption>
+      <thead><tr><th>Option</th><th>Where It Runs</th><th>Cost</th><th>Quality</th><th>When to Use</th></tr></thead>
+      <tbody>
+        <tr>
+          <td><strong>all-MiniLM-L6-v2</strong> (sentence-transformers)</td>
+          <td>Locally — runs on your CPU</td>
+          <td>Free. 80MB model download once.</td>
+          <td>Very good for short text</td>
+          <td><span class="badge high">Recommended Phase 3 start</span></td>
+        </tr>
+        <tr>
+          <td><strong>text-embedding-3-small</strong> (OpenAI)</td>
+          <td>API call</td>
+          <td>~$0.00002 / 1K tokens. Negligible for &lt; 5K questions.</td>
+          <td>Excellent</td>
+          <td>When local model quality isn't sufficient</td>
+        </tr>
+        <tr>
+          <td><strong>voyage-lite-02-instruct</strong> (Voyage AI)</td>
+          <td>API call</td>
+          <td>Free tier available</td>
+          <td>Excellent, tuned for retrieval</td>
+          <td>Good free alternative to OpenAI embeddings</td>
+        </tr>
+      </tbody>
+    </table>
+    </div>
+
+    <h3>When Do You Actually Need a Vector Database?</h3>
+    <p>
+      You do <strong>not</strong> need a vector database for the MVP or even Phase 2.
+      A vector database (pgvector, Chroma, Qdrant, Weaviate) is a specialized storage
+      engine optimized for <em>nearest-neighbor search over millions of embedding vectors</em>.
+      For PaperLens, the threshold for needing one is roughly:
+    </p>
+    <ul>
+      <li><strong>Under 2,000 questions:</strong> Store embeddings as JSON/array columns in PostgreSQL. NumPy cosine similarity over the full set finishes in milliseconds.</li>
+      <li><strong>2,000–50,000 questions:</strong> Use <code>pgvector</code> — a PostgreSQL extension that adds a native vector column type and approximate nearest-neighbor index. No new infrastructure.</li>
+      <li><strong>50,000+ questions:</strong> Dedicated vector database (Chroma locally, or Qdrant/Weaviate hosted). This is not a student portfolio scale — don't build for it yet.</li>
+    </ul>
+
+    <div class="callout warn">
+      <span class="c-tag">Common Beginner Mistake</span>
+      <p>
+        Adding a vector database before you have embeddings, and adding embeddings before
+        you have a working question bank, and building the question bank before PDF extraction
+        is reliable. Every step in this list depends on the one before it. Build in order.
+        Phase 1 fuzzy matching will work very well for a portfolio-scale project.
+      </p>
+    </div>
+  </section>
+
+
+  <!-- ══════════════════════════════════════════════════ -->
+  <!-- 04  PRIORITY SCORING ENGINE -->
+  <!-- ══════════════════════════════════════════════════ -->
+  <section class="section" id="priority">
+    <div class="eyebrow">Blueprint 04 / 10</div>
+    <h2>Priority Scoring Engine</h2>
+
+    <p>
+      The priority score is the headline feature of PaperLens — the number a student looks
+      at to decide what to study first. It must be a <em>composite signal</em>, not just a
+      raw repeat count. A question that appeared in 3 out of 5 papers, carries 10 marks, and
+      was asked last year is far more important than one that appeared 3 times across papers
+      from 8 years ago for 2 marks each. The score must reflect that.
+    </p>
+
+    <h3>The Six Factors</h3>
+    <div class="formula-box">
+      <div class="formula-title">Priority Score Formula (0–100)</div>
+      <div class="formula-main">
+        Score = (F<sub>freq</sub> × 0.30) + (F<sub>recency</sub> × 0.25) + (F<sub>marks</sub> × 0.20) + (F<sub>spread</sub> × 0.15) + (F<sub>cluster</sub> × 0.07) + (F<sub>chapter</sub> × 0.03)
+      </div>
+      <div class="formula-grid">
+        <div class="formula-factor f1">
+          <div class="fname">F_freq</div>
+          <div class="fweight">30%</div>
+          <div class="fdesc">Frequency: how many times the question appeared across all papers in the session. Normalized 0–100 relative to the most frequent question.</div>
+        </div>
+        <div class="formula-factor f2">
+          <div class="fname">F_recency</div>
+          <div class="fweight">25%</div>
+          <div class="fdesc">Recency: how recent was the last occurrence? Last year = 100, 2 years ago = 75, 3+ years ago = diminishing returns.</div>
+        </div>
+        <div class="formula-factor f3">
+          <div class="fname">F_marks</div>
+          <div class="fweight">20%</div>
+          <div class="fdesc">Marks weight: avg_marks / total_marks_in_paper. A 10-mark question in a 50-mark paper = 20%. Normalized 0–100.</div>
+        </div>
+        <div class="formula-factor f4">
+          <div class="fname">F_spread</div>
+          <div class="fweight">15%</div>
+          <div class="fdesc">Year spread: number of distinct years the question (or its cluster) appeared in. Wider spread = more consistently examined. Normalized 0–100.</div>
+        </div>
+        <div class="formula-factor f5">
+          <div class="fname">F_cluster</div>
+          <div class="fweight">7%</div>
+          <div class="fdesc">Cluster size: how many similar (not identical) questions are in the same similarity cluster. Bigger cluster = broader concept, more likely to reappear.</div>
+        </div>
+        <div class="formula-factor f6">
+          <div class="fname">F_chapter</div>
+          <div class="fweight">3%</div>
+          <div class="fdesc">Chapter importance: optionally boosted if the user's context marks certain chapters as high-weightage. Default = 50 (neutral) for all chapters.</div>
+        </div>
+      </div>
+    </div>
+
+    <h3>Normalization Rules for Each Factor</h3>
+    <div class="table-wrap">
+    <table>
+      <thead><tr><th>Factor</th><th>Raw Value</th><th>Normalization Rule</th><th>Example</th></tr></thead>
+      <tbody>
+        <tr>
+          <td><strong>F_freq</strong></td>
+          <td>Integer count (1–N)</td>
+          <td><code>(count / max_count_in_session) × 100</code></td>
+          <td>Question appeared 4 times; most frequent question appeared 5 times → F_freq = 80</td>
+        </tr>
+        <tr>
+          <td><strong>F_recency</strong></td>
+          <td>Year of last occurrence</td>
+          <td><code>max(0, 100 − (current_year − last_year) × 20)</code></td>
+          <td>Last appeared 2024, current = 2025 → 100−20 = 80</td>
+        </tr>
+        <tr>
+          <td><strong>F_marks</strong></td>
+          <td>Average marks</td>
+          <td><code>(avg_marks / total_marks) × 100</code>, if total_marks known; else <code>(avg_marks / max_marks_in_session) × 100</code></td>
+          <td>10 marks, 70-mark paper → F_marks = 14.3</td>
+        </tr>
+        <tr>
+          <td><strong>F_spread</strong></td>
+          <td>Distinct year count</td>
+          <td><code>(distinct_years / total_years_in_session) × 100</code></td>
+          <td>Appeared in 3 of 5 session years → F_spread = 60</td>
+        </tr>
+        <tr>
+          <td><strong>F_cluster</strong></td>
+          <td>Cluster group count</td>
+          <td><code>min(100, (cluster_size − 1) × 25)</code></td>
+          <td>Cluster of 4 groups → F_cluster = 75</td>
+        </tr>
+        <tr>
+          <td><strong>F_chapter</strong></td>
+          <td>User-defined 0–100 or auto 50</td>
+          <td>Pass through directly</td>
+          <td>User marks "Deadlocks" as high priority → 90</td>
+        </tr>
+      </tbody>
+    </table>
+    </div>
+
+    <h3>Priority Tier Thresholds</h3>
+    <div class="table-wrap">
+    <table>
+      <thead><tr><th>Score Range</th><th>Tier</th><th>Meaning</th><th>Student Action</th></tr></thead>
+      <tbody>
+        <tr><td><strong>85–100</strong></td><td><span class="badge critical">Critical</span></td><td>Appeared recently, frequently, and carries high marks. Near-certain to appear.</td><td>Prepare an answer you can write in exam conditions immediately.</td></tr>
+        <tr><td><strong>70–84</strong></td><td><span class="badge veryhigh">Very High</span></td><td>Highly consistent pattern across multiple years.</td><td>Prepare fully — strong likelihood of appearing.</td></tr>
+        <tr><td><strong>50–69</strong></td><td><span class="badge high">High</span></td><td>Appeared multiple times but may have gaps in recent years or lower marks.</td><td>Prepare — included in core study plan.</td></tr>
+        <tr><td><strong>30–49</strong></td><td><span class="badge medium">Medium</span></td><td>Appeared once or twice, or older pattern.</td><td>Review if time permits — optional depth.</td></tr>
+        <tr><td><strong>0–29</strong></td><td><span class="badge low">Low</span></td><td>Unique question, low marks, or very old. May reflect a one-off examiner choice.</td><td>Skip unless topic is fundamentally important.</td></tr>
+      </tbody>
+    </table>
+    </div>
+
+    <h3>Priority Score in Action — Live Example</h3>
+    <div class="priority-demo">
+      <div class="pd-head">Example: Operating Systems Question Bank — Sorted by Priority Score</div>
+      <div class="priority-row critical">
+        <span class="pr-score">94</span>
+        <span class="pr-q">Explain Round Robin Scheduling with an example. How is the time quantum selected?</span>
+        <span class="pr-meta"><span class="badge critical">Critical</span> &nbsp; 5 yrs · 10M</span>
+      </div>
+      <div class="priority-row veryhigh">
+        <span class="pr-score">81</span>
+        <span class="pr-q">What are the necessary conditions for a Deadlock to occur? Explain with an example.</span>
+        <span class="pr-meta"><span class="badge veryhigh">Very High</span> &nbsp; 4 yrs · 8M</span>
+      </div>
+      <div class="priority-row veryhigh">
+        <span class="pr-score">76</span>
+        <span class="pr-q">Describe the Banker's Algorithm for Deadlock Avoidance.</span>
+        <span class="pr-meta"><span class="badge veryhigh">Very High</span> &nbsp; 3 yrs · 10M</span>
+      </div>
+      <div class="priority-row high">
+        <span class="pr-score">58</span>
+        <span class="pr-q">Explain Producer-Consumer problem using semaphores.</span>
+        <span class="pr-meta"><span class="badge high">High</span> &nbsp; 2 yrs · 8M</span>
+      </div>
+      <div class="priority-row medium">
+        <span class="pr-score">41</span>
+        <span class="pr-q">Compare Paging and Segmentation memory management techniques.</span>
+        <span class="pr-meta"><span class="badge medium">Medium</span> &nbsp; 2 yrs · 5M</span>
+      </div>
+      <div class="priority-row low">
+        <span class="pr-score">18</span>
+        <span class="pr-q">What is Thrashing? How can it be prevented?</span>
+        <span class="pr-meta"><span class="badge low">Low</span> &nbsp; 1 yr · 4M</span>
+      </div>
+    </div>
+  </section>
+
+
+  <!-- ══════════════════════════════════════════════════ -->
+  <!-- 05  MULTI-PDF PROCESSING PIPELINE -->
+  <!-- ══════════════════════════════════════════════════ -->
+  <section class="section" id="pipeline">
+    <div class="eyebrow">Blueprint 05 / 10</div>
+    <h2>Multi-PDF Processing Pipeline</h2>
+
+    <p>
+      Processing multiple PDFs is not simply running the single-PDF pipeline five times in
+      a loop. The key differences are: state management across the batch, idempotency
+      (handling re-uploads), coordination between papers before running cross-paper analysis,
+      and user feedback during a potentially slow operation.
+    </p>
+
+    <h3>Session-Based Processing Model</h3>
+    <p>
+      Every multi-PDF upload is wrapped in an <strong>analysis session</strong>. The session
+      is the unit of work. It moves through a defined state machine:
+    </p>
+    <div class="diagram-box">
+      <svg viewBox="0 0 740 120" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <marker id="arr3" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="5" markerHeight="5" orient="auto">
+            <path d="M0 0L8 4L0 8z" fill="#9FD3FF"/>
+          </marker>
+        </defs>
+        <rect width="740" height="120" fill="#0C1E30"/>
+        <!-- States -->
+        <rect x="16" y="36" width="90" height="44" rx="3" fill="rgba(94,122,142,.2)" stroke="#5E7A8E" stroke-width="1.2"/>
+        <text x="61" y="55" fill="#9FD3FF" font-family="JetBrains Mono,monospace" font-size="10" text-anchor="middle" font-weight="700">CREATED</text>
+        <text x="61" y="71" fill="#6A8EA8" font-family="JetBrains Mono,monospace" font-size="9" text-anchor="middle">Session &amp; files saved</text>
+
+        <rect x="134" y="36" width="100" height="44" rx="3" fill="rgba(30,90,155,.15)" stroke="#1E5A9B" stroke-width="1.2"/>
+        <text x="184" y="55" fill="#9FD3FF" font-family="JetBrains Mono,monospace" font-size="10" text-anchor="middle" font-weight="700">EXTRACTING</text>
+        <text x="184" y="71" fill="#6A8EA8" font-family="JetBrains Mono,monospace" font-size="9" text-anchor="middle">Per-PDF pipeline runs</text>
+
+        <rect x="262" y="36" width="110" height="44" rx="3" fill="rgba(30,90,155,.15)" stroke="#1E5A9B" stroke-width="1.2"/>
+        <text x="317" y="55" fill="#9FD3FF" font-family="JetBrains Mono,monospace" font-size="10" text-anchor="middle" font-weight="700">MERGING</text>
+        <text x="317" y="71" fill="#6A8EA8" font-family="JetBrains Mono,monospace" font-size="9" text-anchor="middle">All papers extracted</text>
+
+        <rect x="400" y="36" width="110" height="44" rx="3" fill="rgba(201,122,32,.12)" stroke="#C97A20" stroke-width="1.2"/>
+        <text x="455" y="55" fill="#F6C27A" font-family="JetBrains Mono,monospace" font-size="10" text-anchor="middle" font-weight="700">ANALYZING</text>
+        <text x="455" y="71" fill="#6A8EA8" font-family="JetBrains Mono,monospace" font-size="9" text-anchor="middle">Dedup · Score · Tag</text>
+
+        <rect x="538" y="36" width="100" height="44" rx="3" fill="rgba(42,122,85,.15)" stroke="#2A7A55" stroke-width="1.2"/>
+        <text x="588" y="55" fill="#6DDCA4" font-family="JetBrains Mono,monospace" font-size="10" text-anchor="middle" font-weight="700">COMPLETE</text>
+        <text x="588" y="71" fill="#6A8EA8" font-family="JetBrains Mono,monospace" font-size="9" text-anchor="middle">Dashboard ready</text>
+
+        <rect x="656" y="36" width="74" height="44" rx="3" fill="rgba(181,53,60,.12)" stroke="#B5353C" stroke-width="1.2"/>
+        <text x="693" y="55" fill="#E88888" font-family="JetBrains Mono,monospace" font-size="10" text-anchor="middle" font-weight="700">FAILED</text>
+        <text x="693" y="71" fill="#6A8EA8" font-family="JetBrains Mono,monospace" font-size="9" text-anchor="middle">Recoverable?</text>
+
+        <!-- Arrows -->
+        <line x1="106" y1="58" x2="132" y2="58" stroke="#9FD3FF" stroke-width="1.2" marker-end="url(#arr3)"/>
+        <line x1="234" y1="58" x2="260" y2="58" stroke="#9FD3FF" stroke-width="1.2" marker-end="url(#arr3)"/>
+        <line x1="372" y1="58" x2="398" y2="58" stroke="#F6C27A" stroke-width="1.2" marker-end="url(#arr3)"/>
+        <line x1="510" y1="58" x2="536" y2="58" stroke="#6DDCA4" stroke-width="1.2" marker-end="url(#arr3)"/>
+        <line x1="638" y1="58" x2="654" y2="58" stroke="#E88888" stroke-width="1.2" marker-end="url(#arr3)"/>
+        <!-- Failure back arrow -->
+        <path d="M693 80 C 693 100 317 105 317 82" fill="none" stroke="#E88888" stroke-width="1" stroke-dasharray="4 3" marker-end="url(#arr3)"/>
+        <text x="500" y="114" fill="#6A8EA8" font-family="JetBrains Mono,monospace" font-size="8.5" text-anchor="middle">retry if recoverable</text>
+      </svg>
+      <div class="diagram-caption">Fig 5.1 — Session state machine. Each session persists its state so the UI can poll for progress.</div>
+    </div>
+
+    <h3>Step-by-Step Pipeline</h3>
+    <div class="pipeline">
+      <div class="pipeline-step">
+        <div class="step-num">01</div>
+        <div class="step-body">
+          <div class="stitle">Receive Batch Upload + Create Session</div>
+          <div class="sdesc">API endpoint accepts N files + optional context form data. Creates <code>analysis_session</code> record (status = CREATED), creates one <code>papers</code> record per file with status QUEUED, saves files to /uploads/session_id/.</div>
+          <div class="stag">Immediately returns session_id to frontend — no waiting for processing</div>
+        </div>
+      </div>
+      <div class="pipeline-step">
+        <div class="step-num">02</div>
+        <div class="step-body">
+          <div class="stitle">Idempotency Check (Duplicate Paper Guard)</div>
+          <div class="sdesc">Before processing each paper, compute SHA-256 of file bytes. Query <code>papers</code> table for matching <code>content_hash</code> within this session. If found: skip processing, link to existing extracted questions. This prevents wasted work if a user uploads the same file twice.</div>
+          <div class="stag">Also check across sessions: if paper was already processed in a previous session, re-use extracted questions</div>
+        </div>
+      </div>
+      <div class="pipeline-step alt">
+        <div class="step-num">03</div>
+        <div class="step-body">
+          <div class="stitle">Year Extraction from Filename</div>
+          <div class="sdesc">Parse 4-digit year from filename using regex: <code>OS_2023.pdf</code> → 2023, <code>Mid_Sem_Exam_2022_OS.pdf</code> → 2022. If no year found, set paper status to NEEDS_YEAR and ask the user to confirm/enter it before proceeding. Year is too critical for scoring to guess wrong.</div>
+          <div class="stag">If user provided year in context form, use that and skip parsing</div>
+        </div>
+      </div>
+      <div class="pipeline-step">
+        <div class="step-num">04</div>
+        <div class="step-body">
+          <div class="stitle">Per-PDF Extraction (Existing M1–M3 Logic)</div>
+          <div class="sdesc">Run existing PDF extraction + OCR + question segmentation on each paper. Update <code>papers.extraction_status</code> as work proceeds. Store all questions in <code>raw_questions</code> with <code>paper_id</code> and <code>year</code>. Update session status to EXTRACTING when the first paper starts, MERGING when all finish.</div>
+          <div class="stag">MVP: run sequentially. Future: run concurrently with FastAPI BackgroundTasks or asyncio.gather</div>
+        </div>
+      </div>
+      <div class="pipeline-step alt">
+        <div class="step-num">05</div>
+        <div class="step-body">
+          <div class="stitle">Normalize All Questions</div>
+          <div class="sdesc">Once all papers are extracted, run the normalization pipeline across all questions: lowercase → strip punctuation → collapse whitespace → strip question-number prefixes → compute SHA-256 <code>content_hash</code>. Store normalized text and hash back to <code>raw_questions</code>.</div>
+          <div class="stag">Do not normalize during extraction — always do it as a separate idempotent pass</div>
+        </div>
+      </div>
+      <div class="pipeline-step">
+        <div class="step-num">06</div>
+        <div class="step-body">
+          <div class="stitle">Exact Deduplication → Create Question Groups</div>
+          <div class="sdesc">Group all raw_questions by <code>content_hash</code>. Each unique hash = one <code>question_group</code>. Create <code>question_occurrences</code> records linking each raw question to its group. The group's <code>canonical_text</code> = the longest/most complete version among its occurrences.</div>
+          <div class="stag">Update session status to ANALYZING after this step</div>
+        </div>
+      </div>
+      <div class="pipeline-step alt">
+        <div class="step-num">07</div>
+        <div class="step-body">
+          <div class="stitle">Fuzzy Similarity Grouping → Create Clusters</div>
+          <div class="sdesc">Run RapidFuzz token_set_ratio over the set of unique group canonical_texts. Any two groups scoring above threshold (default 84) get assigned to the same <code>similarity_cluster</code>. One group per cluster becomes the representative (longest canonical_text). Update <code>question_groups.cluster_id</code>.</div>
+          <div class="stag">Store method='fuzzy' and the threshold used in similarity_clusters — important for debugging and future recalibration</div>
+        </div>
+      </div>
+      <div class="pipeline-step">
+        <div class="step-num">08</div>
+        <div class="step-body">
+          <div class="stitle">Topic Classification</div>
+          <div class="sdesc">For each question group, test the canonical_text against keyword lists for each topic. If user provided chapters, build keyword lists from chapter names + common domain terms. Assign best-matching topic_id. If no match, assign a catch-all "Uncategorized" topic. Store confidence score for future manual review UI.</div>
+          <div class="stag">This is the step most improved by user context. Always run context-aware classification before generic keyword classification.</div>
+        </div>
+      </div>
+      <div class="pipeline-step alt">
+        <div class="step-num">09</div>
+        <div class="step-body">
+          <div class="stitle">Priority Score Computation</div>
+          <div class="sdesc">For each question group: COUNT occurrences, find last_year, compute avg_marks, count distinct years, look up cluster size. Apply the 6-factor formula (see Blueprint 04). Store <code>priority_score</code> and <code>priority_level</code> enum on the group. Set <code>score_computed_at</code>.</div>
+          <div class="stag">Scores are always recomputed from scratch — never updated incrementally. Set a stale flag if new papers are added to the session.</div>
+        </div>
+      </div>
+      <div class="pipeline-step">
+        <div class="step-num">10</div>
+        <div class="step-body">
+          <div class="stitle">Analytics Pre-computation + Session Completion</div>
+          <div class="sdesc">Run the AnalyticsService to compute all dashboard metrics (frequency distribution, chapter weightage, year trends). Cache results to <code>analytics_cache</code> table with <code>computed_at</code> timestamp. Set session status to COMPLETE. Frontend polling detects status change and loads the dashboard.</div>
+          <div class="stag">Analytics cache TTL: invalidate whenever new papers are added to the session or scores recomputed</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+
+  <!-- ══════════════════════════════════════════════════ -->
+  <!-- 06  DASHBOARD ARCHITECTURE -->
+  <!-- ══════════════════════════════════════════════════ -->
+  <section class="section" id="dashboard">
+    <div class="eyebrow">Blueprint 06 / 10</div>
+    <h2>Dashboard Architecture</h2>
+
+    <h3>Dashboard Panels and Their Data Sources</h3>
+    <div class="table-wrap">
+    <table>
+      <thead><tr><th>Panel</th><th>What It Shows</th><th>Data Source / Query</th><th>Chart Type</th></tr></thead>
+      <tbody>
+        <tr>
+          <td><strong>Priority Distribution</strong></td>
+          <td>How many questions fall into each priority tier</td>
+          <td><code>SELECT priority_level, COUNT(*) FROM question_groups WHERE session_id=? GROUP BY priority_level</code></td>
+          <td>Donut chart or stacked bar</td>
+        </tr>
+        <tr>
+          <td><strong>Top 10 Most Critical Questions</strong></td>
+          <td>Ordered list of question groups by priority_score DESC</td>
+          <td><code>SELECT * FROM question_groups WHERE session_id=? ORDER BY priority_score DESC LIMIT 10</code></td>
+          <td>Ranked card list with score bars</td>
+        </tr>
+        <tr>
+          <td><strong>Chapter Weightage</strong></td>
+          <td>Which chapters account for the most marks / question volume</td>
+          <td>JOIN question_groups + question_occurrences + topics. SUM(avg_marks) GROUP BY topic_id</td>
+          <td>Horizontal bar chart, sorted by marks</td>
+        </tr>
+        <tr>
+          <td><strong>Year-wise Question Frequency</strong></td>
+          <td>How many questions appeared per year — trend line</td>
+          <td><code>SELECT year, COUNT(*) FROM question_occurrences WHERE session_id=? GROUP BY year ORDER BY year</code></td>
+          <td>Line chart</td>
+        </tr>
+        <tr>
+          <td><strong>Repetition Heatmap</strong></td>
+          <td>Grid of [topic × year] showing question density</td>
+          <td>JOIN occurrences + groups + topics. COUNT() GROUP BY (topic_id, year)</td>
+          <td>Heatmap grid</td>
+        </tr>
+        <tr>
+          <td><strong>Question Type Mix</strong></td>
+          <td>Long answer vs short vs MCQ breakdown per chapter</td>
+          <td>JOIN groups + topics. GROUP BY (topic_id, question_type)</td>
+          <td>Grouped bar chart</td>
+        </tr>
+        <tr>
+          <td><strong>Summary Stats Row</strong></td>
+          <td>Total questions, unique questions, repeat rate%, Critical count</td>
+          <td>Computed aggregates from groups + occurrences</td>
+          <td>Metric cards (e.g. "42% repeat rate")</td>
+        </tr>
+        <tr>
+          <td><strong>AI Insights Panel</strong></td>
+          <td>Natural language prep guidance</td>
+          <td>Pre-generated text from InsightService, stored in session</td>
+          <td>Text block with structured sections</td>
+        </tr>
+      </tbody>
+    </table>
+    </div>
+
+    <h3>API Endpoints for the Dashboard</h3>
+    <p>
+      Design the API to serve the dashboard efficiently. Avoid the trap of having the
+      frontend make 8 separate API calls to load 8 panels — that causes slow load times
+      and waterfall requests. Provide a single summary endpoint plus lazy-load endpoints
+      for heavy/optional data.
+    </p>
+    <pre>
+<span class="c"># Session management</span>
+POST   /api/sessions                    <span class="c"># Create session, upload N PDFs</span>
+GET    /api/sessions/{id}               <span class="c"># Status polling + summary stats</span>
+
+<span class="c"># Question bank (the main data view)</span>
+GET    /api/sessions/{id}/questions     <span class="c"># Paginated, with filters + sort</span>
+GET    /api/sessions/{id}/questions/{group_id}  <span class="c"># Single group + all occurrences</span>
+
+<span class="c"># Analytics (served as single precomputed payload)</span>
+GET    /api/sessions/{id}/analytics     <span class="c"># All chart data in one response</span>
+
+<span class="c"># Insights (possibly slow — serve separately)</span>
+GET    /api/sessions/{id}/insights      <span class="c"># AI-generated text, cached per session</span>
+POST   /api/sessions/{id}/insights/regenerate  <span class="c"># Force re-generation</span>
+
+<span class="c"># User context (can be set after session creation)</span>
+PUT    /api/sessions/{id}/context       <span class="c"># Update context → triggers re-analysis</span>
+</pre>
+
+    <h3>Analytics Payload Shape</h3>
+    <p>
+      The single <code>/analytics</code> response should contain everything the dashboard
+      needs to render all charts without further API calls. Structure it as a named map:
+    </p>
+    <pre>
+{
+  <span class="k">"summary"</span>: {
+    <span class="v">"total_questions"</span>: 387,
+    <span class="v">"unique_groups"</span>: 198,
+    <span class="v">"repeat_rate_pct"</span>: 48.8,
+    <span class="v">"critical_count"</span>: 12,
+    <span class="v">"years_covered"</span>: 5
+  },
+  <span class="k">"priority_distribution"</span>: [
+    { <span class="v">"level"</span>: <span class="v">"critical"</span>, <span class="v">"count"</span>: 12 },
+    { <span class="v">"level"</span>: <span class="v">"very_high"</span>, <span class="v">"count"</span>: 27 }
+    ...
+  ],
+  <span class="k">"chapter_weightage"</span>: [
+    { <span class="v">"topic"</span>: <span class="v">"CPU Scheduling"</span>, <span class="v">"question_count"</span>: 34, <span class="v">"total_marks"</span>: 180 }
+    ...
+  ],
+  <span class="k">"year_trend"</span>: [
+    { <span class="v">"year"</span>: 2020, <span class="v">"question_count"</span>: 72, <span class="v">"unique_topics"</span>: 8 }
+    ...
+  ],
+  <span class="k">"repetition_heatmap"</span>: [
+    { <span class="v">"topic_id"</span>: <span class="v">"..."</span>, <span class="v">"topic_name"</span>: <span class="v">"Deadlocks"</span>, <span class="v">"year"</span>: 2022, <span class="v">"count"</span>: 5 }
+    ...
+  ]
+}
+</pre>
+  </section>
+
+
+  <!-- ══════════════════════════════════════════════════ -->
+  <!-- 07  UI DESIGN RECOMMENDATIONS -->
+  <!-- ══════════════════════════════════════════════════ -->
+  <section class="section" id="ui">
+    <div class="eyebrow">Blueprint 07 / 10</div>
+    <h2>UI Design Recommendations</h2>
+
+    <h3>Priority Indicator Patterns — Pros and Cons</h3>
+    <div class="table-wrap">
+    <table>
+      <thead><tr><th>Pattern</th><th>Example</th><th>Pros</th><th>Cons</th><th>Verdict</th></tr></thead>
+      <tbody>
+        <tr>
+          <td><strong>Left border color</strong></td>
+          <td>4px solid red/amber/green left border on question card</td>
+          <td>Instantly scannable. No text needed. Works in any layout. Zero cognitive load.</td>
+          <td>Relies on color alone — accessibility concern. 5 levels need 5 distinguishable colors.</td>
+          <td><span class="badge mvp">Use — primary indicator</span></td>
+        </tr>
+        <tr>
+          <td><strong>Colored badge</strong></td>
+          <td>"Critical" chip with background fill</td>
+          <td>Self-labeling — no color blindness issue. Searchable in UI. Screenreader-friendly.</td>
+          <td>Takes horizontal space. Too many badges in a list gets visually noisy.</td>
+          <td><span class="badge mvp">Use — alongside left border</span></td>
+        </tr>
+        <tr>
+          <td><strong>Score number</strong></td>
+          <td>"92 / 100" in bold</td>
+          <td>Communicates precision. Allows sorting. Satisfying for analytical users.</td>
+          <td>Meaningless without context ("is 67 good?"). Students may distrust exact-looking scores.</td>
+          <td><span class="badge phase2">Use — secondary, in detail view</span></td>
+        </tr>
+        <tr>
+          <td><strong>Heat bar / progress fill</strong></td>
+          <td>Colored horizontal fill bar scaled 0–100</td>
+          <td>Communicates relative importance in a compact, continuous way. Visually engaging.</td>
+          <td>Harder to compare across cards. Overdesigned for a utility tool.</td>
+          <td><span class="badge phase2">Use — in analytics summary only</span></td>
+        </tr>
+        <tr>
+          <td><strong>Fire / star emoji icons</strong></td>
+          <td>🔥🔥🔥 for critical</td>
+          <td>Extremely friendly and instantly understood by students.</td>
+          <td>Not professional. Hard to filter/sort on. Inconsistent across systems.</td>
+          <td>Avoid in core UI. Optional in gamified "hot topics" widget.</td>
+        </tr>
+      </tbody>
+    </table>
+    </div>
+
+    <div class="callout tip">
+      <span class="c-tag">Architect's Recommendation</span>
+      <p>
+        Use the <strong>left border + badge combination</strong> as your default question
+        card design. The left border provides instant visual scanning; the badge provides
+        the label for accessibility, filtering, and screen readers. Add the numeric score
+        only in the expanded detail view. This is the pattern used by Jira (issue priority),
+        Linear (urgency), and most task management tools — it's learned behavior students
+        will understand immediately.
+      </p>
+    </div>
+
+    <h3>Filter System Design</h3>
+    <p>
+      The question bank filter system must support six dimensions simultaneously without
+      overwhelming the student. The recommended pattern is a persistent left-sidebar filter
+      panel (desktop) or a bottom-sheet (mobile), not inline dropdowns.
+    </p>
+
+    <div class="filter-demo">
+      <div class="fd-label">Example: Active Filter State</div>
+      <div style="margin-bottom:10px;">
+        <div class="fd-label" style="margin-bottom:6px;">Priority</div>
+        <div class="chips">
+          <div class="chip active"><span class="dot" style="background:#B5353C;"></span>Critical</div>
+          <div class="chip active"><span class="dot" style="background:#C97A20;"></span>Very High</div>
+          <div class="chip"><span class="dot" style="background:#2A7A55;"></span>High</div>
+          <div class="chip"><span class="dot" style="background:#1E5A9B;"></span>Medium</div>
+          <div class="chip"><span class="dot" style="background:#5E7A8E;"></span>Low</div>
+        </div>
+      </div>
+      <div style="margin-bottom:10px;">
+        <div class="fd-label" style="margin-bottom:6px;">Chapter</div>
+        <div class="chips">
+          <div class="chip active">All Chapters</div>
+          <div class="chip">CPU Scheduling</div>
+          <div class="chip">Deadlocks</div>
+          <div class="chip">Memory Management</div>
+          <div class="chip">Process Management</div>
+        </div>
+      </div>
+      <div style="margin-bottom:10px;">
+        <div class="fd-label" style="margin-bottom:6px;">Appearance</div>
+        <div class="chips">
+          <div class="chip active">All Questions</div>
+          <div class="chip">Repeated Only</div>
+          <div class="chip">Unique Only</div>
+        </div>
+      </div>
+      <div>
+        <div class="fd-label" style="margin-bottom:6px;">Marks &amp; Type</div>
+        <div class="chips">
+          <div class="chip">5+ Marks</div>
+          <div class="chip">8+ Marks</div>
+          <div class="chip active">Any Marks</div>
+          <div class="chip" style="margin-left:12px;">Long Answer</div>
+          <div class="chip">Short Answer</div>
+          <div class="chip active">All Types</div>
+        </div>
+      </div>
+    </div>
+
+    <h3>Question Card Design Specification</h3>
+    <p>Each question card must communicate all critical information at a glance. Proposed information hierarchy:</p>
+    <div class="two-col">
+      <div class="col-card">
+        <h4>Collapsed Card (List View)</h4>
+        <ul>
+          <li><strong>Left border:</strong> priority tier color (4px)</li>
+          <li><strong>Top-right:</strong> priority badge ("Critical") + occurrence count ("×5")</li>
+          <li><strong>Body:</strong> canonical question text, truncated to 2 lines</li>
+          <li><strong>Footer:</strong> chapter tag + marks + question type + year range (e.g. "2020, 2022, 2024")</li>
+          <li><strong>Click to expand</strong></li>
+        </ul>
+      </div>
+      <div class="col-card">
+        <h4>Expanded Card (Detail View)</h4>
+        <ul>
+          <li>Full canonical question text</li>
+          <li>Priority score breakdown (mini bar chart per factor)</li>
+          <li>All occurrences listed: year · marks · question number · source paper</li>
+          <li>Similar questions in same cluster (linked)</li>
+          <li>Chapter/topic with keyword-match explanation</li>
+        </ul>
+      </div>
+    </div>
+
+    <h3>Upload Flow UX</h3>
+    <p>The upload experience must handle multi-file selection gracefully and give clear progress feedback for a potentially slow processing pipeline.</p>
+    <ol>
+      <li><strong>Drop zone:</strong> Accepts multiple files at once. Shows file list with detected year (editable inline). "Remove" per file before submitting.</li>
+      <li><strong>Context form (optional, collapsible):</strong> Subject, exam type, chapters. Prominently labelled as "Optional — helps improve accuracy."</li>
+      <li><strong>Processing view:</strong> After submit, replace the upload form with a step-by-step progress indicator. Poll <code>GET /sessions/{id}</code> every 2 seconds. Show which paper is currently being processed (e.g. "Extracting OS_2022.pdf — 3 of 5").</li>
+      <li><strong>Completion transition:</strong> Animate to the dashboard on COMPLETE status. Show a summary card first ("Found 198 unique questions across 5 papers — 12 Critical priority").</li>
+    </ol>
+  </section>
+
+
+  <!-- ══════════════════════════════════════════════════ -->
+  <!-- 08  DEVELOPMENT ROADMAP -->
+  <!-- ══════════════════════════════════════════════════ -->
+  <section class="section" id="roadmap">
+    <div class="eyebrow">Blueprint 08 / 10</div>
+    <h2>Development Roadmap</h2>
+
+    <p>
+      Build in strict dependency order. Each phase has a concrete success criterion — a
+      specific test you can run to verify you're done before moving to the next phase.
+      Do not start Phase N+1 until Phase N's success criterion is met.
+    </p>
+
+    <div class="phase-card">
+      <div class="ph-head">
+        <span class="ph-title">Phase 4.1 — Multi-File Upload + Session Model</span>
+        <span class="ph-duration">Est: 2–3 days</span>
+      </div>
+      <div class="ph-body">
+        <table>
+          <thead><tr><th>Item</th><th>Detail</th></tr></thead>
+          <tbody>
+            <tr><td><strong>Objective</strong></td><td>Accept N PDFs in a single upload, create analysis_session + papers records, store files, return session_id immediately</td></tr>
+            <tr><td><strong>Schema work</strong></td><td>Create <code>analysis_sessions</code>, <code>papers</code>, <code>user_context</code> tables. Add <code>session_id</code> FK to existing <code>raw_questions</code>.</td></tr>
+            <tr><td><strong>API work</strong></td><td><code>POST /sessions</code> with multipart/form-data. <code>GET /sessions/{id}</code> returns status + paper list.</td></tr>
+            <tr><td><strong>Frontend work</strong></td><td>Multi-file drop zone with per-file year input field. Submit creates session. Redirect to polling view.</td></tr>
+            <tr><td><strong>Success Criterion</strong></td><td>Upload 5 PDFs at once. Verify 5 <code>papers</code> rows in DB with correct filenames and detected years. Verify session status = CREATED. Verify files exist on disk at <code>/uploads/{session_id}/</code>.</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="phase-card">
+      <div class="ph-head">
+        <span class="ph-title">Phase 4.2 — Batch Extraction Pipeline + Session Status Updates</span>
+        <span class="ph-duration">Est: 2–3 days</span>
+      </div>
+      <div class="ph-body">
+        <table>
+          <thead><tr><th>Item</th><th>Detail</th></tr></thead>
+          <tbody>
+            <tr><td><strong>Objective</strong></td><td>Run existing extraction pipeline on each paper in a session. Update session and paper statuses as work proceeds. Frontend polls for live progress.</td></tr>
+            <tr><td><strong>Backend work</strong></td><td>Create <code>BatchProcessorService</code> that iterates papers, calls existing extraction service, updates statuses. Wrap in <code>BackgroundTasks</code>. Add idempotency check (content_hash).</td></tr>
+            <tr><td><strong>Frontend work</strong></td><td>Polling loop on session status. Per-paper progress indicator. Handle FAILED status gracefully.</td></tr>
+            <tr><td><strong>Success Criterion</strong></td><td>Upload OS_2020.pdf through OS_2024.pdf. All 5 reach extraction_status = EXTRACTED. Total <code>raw_questions</code> count in DB matches manually counted questions across all papers. Session status = MERGING after last paper finishes.</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="phase-card">
+      <div class="ph-head">
+        <span class="ph-title">Phase 4.3 — Normalization + Exact Deduplication + Question Groups</span>
+        <span class="ph-duration">Est: 3–4 days</span>
+      </div>
+      <div class="ph-body">
+        <table>
+          <thead><tr><th>Item</th><th>Detail</th></tr></thead>
+          <tbody>
+            <tr><td><strong>Objective</strong></td><td>Create the <code>question_groups</code> and <code>question_occurrences</code> tables. Populate them from exact-hash deduplication.</td></tr>
+            <tr><td><strong>Schema work</strong></td><td>Create <code>question_groups</code>, <code>question_occurrences</code> tables. Add <code>group_id</code> FK to <code>raw_questions</code>.</td></tr>
+            <tr><td><strong>Service work</strong></td><td><code>NormalizationService</code>: normalize all questions, compute hashes. <code>DeduplicationService</code>: group by hash, create group records + occurrence records, select canonical_text.</td></tr>
+            <tr><td><strong>Success Criterion</strong></td><td>After running on 5 OS papers: verify that a question like "Explain Round Robin scheduling" which appears verbatim in 3 papers results in exactly 1 question_group with 3 question_occurrences. Verify year column in occurrences matches the source paper year.</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="phase-card">
+      <div class="ph-head">
+        <span class="ph-title">Phase 4.4 — Fuzzy Similarity Grouping + Clusters</span>
+        <span class="ph-duration">Est: 3–5 days</span>
+      </div>
+      <div class="ph-body">
+        <table>
+          <thead><tr><th>Item</th><th>Detail</th></tr></thead>
+          <tbody>
+            <tr><td><strong>Objective</strong></td><td>Detect similar (but not identical) questions and group them into similarity clusters.</td></tr>
+            <tr><td><strong>Schema work</strong></td><td>Create <code>similarity_clusters</code> table. Add <code>cluster_id</code> FK to <code>question_groups</code>.</td></tr>
+            <tr><td><strong>Service work</strong></td><td><code>SimilarityService</code>: run RapidFuzz token_set_ratio over canonical_texts. Group above threshold. Create cluster records. Set representative_group_id.</td></tr>
+            <tr><td><strong>Testing critical:</strong></td><td>Build a test fixture with known-similar questions and known-dissimilar questions. Verify your threshold correctly groups all known-similar pairs and keeps known-dissimilar pairs separate. Tune threshold based on results.</td></tr>
+            <tr><td><strong>Success Criterion</strong></td><td>"Explain Round Robin Scheduling", "Describe the working of Round Robin Scheduling", and "Discuss Round Robin with an example" are all in the same similarity_cluster. "What is Deadlock?" is NOT in that cluster.</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="phase-card">
+      <div class="ph-head">
+        <span class="ph-title">Phase 4.5 — Topic Classification + Priority Scoring</span>
+        <span class="ph-duration">Est: 3–4 days</span>
+      </div>
+      <div class="ph-body">
+        <table>
+          <thead><tr><th>Item</th><th>Detail</th></tr></thead>
+          <tbody>
+            <tr><td><strong>Objective</strong></td><td>Assign every question group a topic, then compute its priority score and tier.</td></tr>
+            <tr><td><strong>Schema work</strong></td><td>Create <code>topics</code> table. Add <code>topic_id</code>, <code>priority_score</code>, <code>priority_level</code> to <code>question_groups</code>.</td></tr>
+            <tr><td><strong>Service work</strong></td><td><code>TopicClassificationService</code>: keyword matching + chapter list from context. <code>PriorityScoreService</code>: implement 6-factor formula with normalization rules.</td></tr>
+            <tr><td><strong>Success Criterion</strong></td><td>Print top 10 question groups by priority_score for your test session. Manually verify that the ranking matches your intuition of what "should" be important. A question appearing in 4 of 5 years must score higher than one appearing in 2 of 5 years, all else equal.</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="phase-card">
+      <div class="ph-head">
+        <span class="ph-title">Phase 4.6 — Question Bank UI + Filters</span>
+        <span class="ph-duration">Est: 3–4 days</span>
+      </div>
+      <div class="ph-body">
+        <table>
+          <thead><tr><th>Item</th><th>Detail</th></tr></thead>
+          <tbody>
+            <tr><td><strong>Objective</strong></td><td>Build the main question bank page. Filterable, sortable, paginated list of question groups.</td></tr>
+            <tr><td><strong>API work</strong></td><td><code>GET /sessions/{id}/questions</code> with query params: priority_level, topic_id, question_type, min_marks, year, repeated_only. Paginated with cursor or page+offset.</td></tr>
+            <tr><td><strong>Frontend work</strong></td><td>Question card component with left-border priority indicator. Filter sidebar with chips. Search bar (client-side text filter on loaded questions for MVP).</td></tr>
+            <tr><td><strong>Success Criterion</strong></td><td>Filter to "Critical" priority and "CPU Scheduling" chapter simultaneously. The resulting list is a non-empty subset of the full question bank containing only questions matching both criteria.</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="phase-card">
+      <div class="ph-head">
+        <span class="ph-title">Phase 4.7 — Analytics Dashboard + Insights</span>
+        <span class="ph-duration">Est: 3–5 days</span>
+      </div>
+      <div class="ph-body">
+        <table>
+          <thead><tr><th>Item</th><th>Detail</th></tr></thead>
+          <tbody>
+            <tr><td><strong>Objective</strong></td><td>Complete the analytics dashboard with all charts and AI-generated prep insights.</td></tr>
+            <tr><td><strong>Service work</strong></td><td><code>AnalyticsService</code>: compute all chart datasets. <code>InsightService</code>: rule-based insights for MVP ("CPU Scheduling appears in all 5 papers — make it your #1 priority"). Optionally upgrade to LLM-generated insights.</td></tr>
+            <tr><td><strong>Frontend work</strong></td><td>Dashboard page with: summary stats row, priority donut, chapter bar chart, year trend line, top-10 critical questions card list, insights text panel.</td></tr>
+            <tr><td><strong>Success Criterion</strong></td><td>Upload the same 5 papers to a second student (fresh account or session). Verify the dashboard loads within 3 seconds. Verify chapter with most questions is highlighted correctly. Verify the repeat rate % is mathematically correct.</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+
+  <!-- ══════════════════════════════════════════════════ -->
+  <!-- 09  RISK ANALYSIS -->
+  <!-- ══════════════════════════════════════════════════ -->
+  <section class="section" id="risks">
+    <div class="eyebrow">Blueprint 09 / 10</div>
+    <h2>Risk Analysis</h2>
+
+    <h3>Technical Risks</h3>
+    <div class="table-wrap">
+    <table class="risk-row">
+      <thead><tr><th>Risk</th><th>Severity</th><th>Likelihood</th><th>Mitigation</th></tr></thead>
+      <tbody>
+        <tr>
+          <td><strong>Year not extractable from filename</strong></td>
+          <td><span class="badge critical">High</span></td>
+          <td>Common</td>
+          <td>Never guess. If regex fails, block processing and prompt the user to input the year manually. A wrong year corrupts recency scoring for the entire session.</td>
+        </tr>
+        <tr>
+          <td><strong>Fuzzy threshold too low → false groupings</strong></td>
+          <td><span class="badge high">Medium</span></td>
+          <td>Likely during tuning</td>
+          <td>Build a test suite with known-correct pairs before going to production. Log all groupings with score in range 75–90 for manual spot-check. Let users "ungroup" incorrectly clustered questions.</td>
+        </tr>
+        <tr>
+          <td><strong>Priority scores feel wrong to users</strong></td>
+          <td><span class="badge veryhigh">High</span></td>
+          <td>Moderate</td>
+          <td>Show the score breakdown in detail view (which factors contributed what). Make weights configurable via context (user can say "marks are not important for my exam"). Never present scores as authoritative.</td>
+        </tr>
+        <tr>
+          <td><strong>Topic classification failures ("Uncategorized")</strong></td>
+          <td><span class="badge medium">Medium</span></td>
+          <td>Likely without context</td>
+          <td>Show "Uncategorized" prominently. Prompt user to review and manually tag if context wasn't provided. Use classification confidence score to identify low-confidence tags for user review.</td>
+        </tr>
+        <tr>
+          <td><strong>Slow processing for large batches</strong></td>
+          <td><span class="badge high">Medium</span></td>
+          <td>Low (student scale)</td>
+          <td>For MVP, synchronous processing is fine for up to ~10 PDFs. Add FastAPI BackgroundTasks for the analysis phase so the upload endpoint returns immediately. If OCR is involved, expect 15–30 seconds per page — communicate this to users upfront.</td>
+        </tr>
+        <tr>
+          <td><strong>Re-upload of same paper creates duplicates</strong></td>
+          <td><span class="badge high">Medium</span></td>
+          <td>Common (users resubmit)</td>
+          <td>Content hash check on paper upload (Step 2 in pipeline). If hash exists in this session, skip and return the existing paper record. This is a must-have guard, not optional.</td>
+        </tr>
+      </tbody>
+    </table>
+    </div>
+
+    <h3>Algorithm Limitations</h3>
+    <div class="table-wrap">
+    <table>
+      <thead><tr><th>Limitation</th><th>Impact</th><th>Handling Strategy</th></tr></thead>
+      <tbody>
+        <tr>
+          <td>Fuzzy matching misses semantically similar questions with different vocabulary ("Explain" vs "Describe", "Compare" vs "Differentiate")</td>
+          <td>Some similar questions appear as separate groups instead of clustered</td>
+          <td>Acceptable at MVP. Add TF-IDF cosine similarity in Phase 2 to catch these. Until then, show "Similar questions you might also want to review" as a suggestion, not a hard grouping.</td>
+        </tr>
+        <tr>
+          <td>Priority scoring weights are arbitrary without real student outcome data</td>
+          <td>Scores may not perfectly predict exam likelihood</td>
+          <td>Present scores as "guidance" not "prediction". Add explicit disclaimer in UI: "Based on pattern analysis — not a guarantee of exam content."</td>
+        </tr>
+        <tr>
+          <td>Topic classification keyword matching fails for highly technical questions</td>
+          <td>Questions classified as "Uncategorized" even when topic is obvious to a human</td>
+          <td>Let users correct classifications. Log corrections and use them to improve keyword lists over time.</td>
+        </tr>
+        <tr>
+          <td>Questions with diagrams, mathematical notation, or code blocks are extracted as broken text</td>
+          <td>Those questions have garbled text, grouping fails</td>
+          <td>Detect suspected diagram/equation questions (short text, lots of special characters) and flag with <code>has_special_content = true</code>. Exclude from fuzzy matching. Show them separately in a "Review needed" section.</td>
+        </tr>
+      </tbody>
+    </table>
+    </div>
+
+    <h3>Scalability Concerns</h3>
+    <p>
+      For the current portfolio use case (one student, a handful of subjects, dozens of papers),
+      scalability is not a real concern — SQLite with the right indexes will handle it without
+      breaking a sweat. However, knowing where the walls are demonstrates senior thinking:
+    </p>
+    <ul>
+      <li><strong>Fuzzy matching O(n²):</strong> Hits 5–10 second territory around 5,000 unique questions. Mitigation: RapidFuzz's <code>cdist</code> with workers=-1 (all CPU cores) pushes this to ~50,000 before becoming painful. Vector indexing resolves it beyond that.</li>
+      <li><strong>Analytics queries slow down:</strong> Complex JOINs with GROUP BY across 100k+ rows get slow. Mitigation: pre-computed analytics cache (already in design). Invalidate and recompute when session changes.</li>
+      <li><strong>File storage:</strong> PDFs are large. 100 users × 10 papers × 5MB average = 5GB. Local disk fine for portfolio. S3 (or Cloudflare R2 — free tier) for anything beyond that.</li>
+    </ul>
+  </section>
+
+
+  <!-- ══════════════════════════════════════════════════ -->
+  <!-- 10  FUTURE AI INTEGRATION -->
+  <!-- ══════════════════════════════════════════════════ -->
+  <section class="section" id="ai">
+    <div class="eyebrow">Blueprint 10 / 10</div>
+    <h2>Future AI Integration Opportunities</h2>
+
+    <p>
+      The architecture you build in Milestone 4 is deliberately designed so that AI
+      features can be <em>plugged in as enhancements</em> to specific services — not
+      as foundational changes. Every AI feature below improves an existing service;
+      none of them are prerequisites for the system to function.
+    </p>
+
+    <div class="table-wrap">
+    <table>
+      <thead><tr><th>AI Feature</th><th>Plugs Into</th><th>What It Replaces/Improves</th><th>When to Add</th><th>Cost Risk</th></tr></thead>
+      <tbody>
+        <tr>
+          <td><strong>Semantic similarity via embeddings</strong></td>
+          <td><code>SimilarityService</code></td>
+          <td>Replaces RapidFuzz for Phase 3 — catches paraphrases fuzzy matching misses</td>
+          <td>After you have real users finding false negatives in fuzzy clustering</td>
+          <td>Low — local model (all-MiniLM) or ~$0.50 per 10k questions via API</td>
+        </tr>
+        <tr>
+          <td><strong>AI-assisted topic classification</strong></td>
+          <td><code>TopicClassificationService</code></td>
+          <td>Replaces keyword rules for ambiguous questions. LLM classifies with chapter list as context.</td>
+          <td>After you've characterized your classification error rate on real test data</td>
+          <td>Medium — 1 API call per uncategorized question. Cache aggressively by content hash.</td>
+        </tr>
+        <tr>
+          <td><strong>Prep insight generation</strong></td>
+          <td><code>InsightService</code></td>
+          <td>Replaces rule-based template strings with natural-language study guidance</td>
+          <td>MVP stretch goal — the easiest AI integration, high user-visible impact</td>
+          <td>Low — one call per session with aggregated stats as context (not per-question)</td>
+        </tr>
+        <tr>
+          <td><strong>Difficulty estimation</strong></td>
+          <td>New <code>DifficultyService</code></td>
+          <td>LLM rates each question as Easy / Medium / Hard based on concept depth + marks</td>
+          <td>Milestone 5 — after question bank is working and students validate usefulness</td>
+          <td>Medium — one call per question group (cached by content hash forever)</td>
+        </tr>
+        <tr>
+          <td><strong>Sample answer generation</strong></td>
+          <td>Question detail view</td>
+          <td>On-demand LLM-generated answer outlines for high-priority questions</td>
+          <td>Milestone 5 — the most valuable AI feature for students, but highest cost</td>
+          <td>High — on-demand calls. Use aggressive caching + rate limiting. Consider as a paid feature.</td>
+        </tr>
+        <tr>
+          <td><strong>Exam pattern prediction</strong></td>
+          <td>New <code>PatternPredictionService</code></td>
+          <td>LLM analyzes trend data to predict likely topics for next exam</td>
+          <td>Future — requires well-validated scoring system first. Currently a "wow" demo feature.</td>
+          <td>Low — one call per session with analytics summary as context</td>
+        </tr>
+        <tr>
+          <td><strong>Question importance re-ranking (RLHF-style)</strong></td>
+          <td><code>PriorityScoreService</code></td>
+          <td>Learn from student feedback ("this question was in my exam" / "irrelevant") to adjust weights</td>
+          <td>Post-MVP when you have real user data</td>
+          <td>None — feedback-based, no additional AI calls</td>
+        </tr>
+      </tbody>
+    </table>
+    </div>
+
+    <h3>AI Integration Architecture Principle</h3>
+    <div class="callout tip">
+      <span class="c-tag">Key Design Rule for AI Features</span>
+      <p>
+        Every AI call in PaperLens must go through two guards before executing:
+        (1) a <strong>cache check</strong> (has this exact content been processed before? Look up by <code>content_hash</code>),
+        and (2) a <strong>necessity check</strong> (does rule-based logic already handle this well enough?).
+        This design ensures your AI features enhance quality without running costs you can't control.
+        The rule-based system is always your fallback — never build an AI feature without a non-AI fallback.
+      </p>
+    </div>
+
+    <h3>Final Checklist — Milestone 4 Completion</h3>
+    <ul class="check-list">
+      <li>Multiple PDFs upload in a single operation with individual year inputs</li>
+      <li>Session is created and tracked with a persistent state machine (created → processing → complete)</li>
+      <li>Each paper has its own extraction status, visible to the frontend via polling</li>
+      <li>Duplicate PDF uploads (same file content) are detected and skipped gracefully</li>
+      <li>All questions are normalized with SHA-256 content hashes before grouping</li>
+      <li>Exact duplicate questions across papers are merged into a single question_group with multiple occurrences</li>
+      <li>Similar (not identical) questions are grouped into similarity_clusters using RapidFuzz token_set_ratio</li>
+      <li>Fuzzy threshold is validated against a test fixture with known-correct groupings</li>
+      <li>Every question group has a topic/chapter assignment (even if "Uncategorized")</li>
+      <li>Every question group has a priority_score (0–100) and priority_level (critical/very_high/high/medium/low)</li>
+      <li>Priority scores are ordered correctly: more recent + more frequent questions score higher</li>
+      <li>Question bank API supports filtering by priority_level, topic, marks, question_type, and repeated_only</li>
+      <li>Analytics endpoint returns summary stats + priority distribution + chapter weightage + year trend</li>
+      <li>Dashboard renders all charts from the analytics endpoint without additional API calls</li>
+      <li>Processing a session with 5 papers completes within 60 seconds (assuming text PDFs, no OCR)</li>
+      <li>Adding a 6th paper to an existing session re-triggers analysis and updates scores correctly</li>
+    </ul>
+  </section>
+
+  <!-- FOOTER -->
+  <div class="doc-footer">
+    <span>PAPERLENS · MILESTONE 4 BLUEPRINT</span>
+    <span>Architecture &amp; Implementation Guide · Do not generate code until each phase's success criterion is verified</span>
+  </div>
+
+</main>
+</div><!-- end .page-grid -->
+</body>
+</html>

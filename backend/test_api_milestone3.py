@@ -91,7 +91,7 @@ Q3. What is DFS? (20 marks)
     assert questions[0]['questionNumber'] == "Q1"
     assert questions[0]['questionText'] == "Define Stack"
     assert questions[0]['marks'] == 5
-    assert questions[0]['section'] == "SECTION A"
+    assert questions[0]['section'].startswith("SECTION A")
     
     assert questions[1]['questionNumber'] == "Q2"
     assert questions[1]['questionText'] == "Explain Queue"
@@ -166,7 +166,7 @@ a) reverse singly linked list [10]
     assert len(questions) == 2, f"Expected 2 questions, got {len(questions)}"
     
     assert questions[0]['questionNumber'] == "Q1"
-    assert questions[0]['section'] == "SECTION B"
+    assert questions[0]['section'].startswith("SECTION B")
     assert len(questions[0]['subquestions']) == 2
     assert questions[0]['subquestions'][0]['questionNumber'] == "Q1(a)"
     assert questions[0]['subquestions'][0]['questionText'] == "Define Stack"

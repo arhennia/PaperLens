@@ -114,19 +114,19 @@ PaperLens Footer Info
     assert questions[0]['questionNumber'] == "Q1", f"Expected Q1, got {questions[0]['questionNumber']}"
     assert "What is a database transaction?" in questions[0]['questionText']
     assert questions[0]['marks'] == 10
-    assert questions[0]['section'] == "SECTION A"
+    assert questions[0]['section'].startswith("SECTION A")
     
     # Check Q2 (Normalization fixed "2," -> "Q2" and "[1O M]" -> 10 marks)
     assert questions[1]['questionNumber'] == "Q2"
     assert "Explain two-phase locking" in questions[1]['questionText']
     assert questions[1]['marks'] == 10
-    assert questions[1]['section'] == "SECTION A"
+    assert questions[1]['section'].startswith("SECTION A")
     
     # Check Q4 (Normalization fixed "Q4:" -> "Q4")
     assert questions[2]['questionNumber'] == "Q4"
     assert "Explain dynamic hashing" in questions[2]['questionText']
     assert questions[2]['marks'] == 20
-    assert questions[2]['section'] == "SECTION B"
+    assert questions[2]['section'].startswith("SECTION B")
     
     # Check Q5 nested structure (Q5(a), Q5(b))
     assert questions[3]['questionNumber'] == "Q5"

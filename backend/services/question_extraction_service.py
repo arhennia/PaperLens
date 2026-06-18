@@ -240,7 +240,10 @@ class ExamParser:
                     sec_type = sec_match.group(1).upper()
                     self.current_section = f"{sec_type} {sec_val}".strip()
                 else:
-                    self.current_section = cleaned_line
+                    if self.current_section and any(p in self.current_section for p in ["SECTION", "PART", "GROUP", "SUB-SECTION"]):
+                        self.current_section = f"{self.current_section} - {cleaned_line}"
+                    else:
+                        self.current_section = cleaned_line
                 
                 # Close contexts
                 self.active_main_q = None
