@@ -54,7 +54,7 @@ function App() {
 
   const validateAndUpload = (selectedFile) => {
     setErrorMsg('');
-    if (selectedFile.type !== 'application/pdf' && !selectedFile.name.toLowerCase().endswith?.('.pdf')) {
+    if (selectedFile.type !== 'application/pdf' && !selectedFile.name.toLowerCase().endsWith?.('.pdf')) {
       // Fallback check if browser MIME type is missing
       if (!selectedFile.name.toLowerCase().endsWith('.pdf')) {
         setStatus('error');
@@ -72,6 +72,25 @@ function App() {
 
     setFile(selectedFile);
     uploadFile(selectedFile);
+  };
+
+  const loadDemoFile = async (url, filename) => {
+    setStatus('uploading');
+    setErrorMsg('');
+    try {
+      const response = await fetch(url);
+      if (!response.ok) {
+        throw new Error(`Failed to fetch demo file: ${response.statusText}`);
+      }
+      const blob = await response.blob();
+      const demoFile = new File([blob], filename, { type: 'application/pdf' });
+      setFile(demoFile);
+      uploadFile(demoFile);
+    } catch (err) {
+      console.error(err);
+      setStatus('error');
+      setErrorMsg(err.message || 'Failed to load demo file.');
+    }
   };
 
   const uploadFile = async (pdfFile) => {
@@ -174,7 +193,7 @@ function App() {
             <div>
               <span className="font-mono font-bold text-lg tracking-wider text-white">PAPERLENS</span>
               <span className="ml-2 text-[10px] uppercase tracking-widest px-1.5 py-0.5 rounded bg-slate-900 border border-slate-800 text-slate-400 font-semibold">
-                Milestone 2
+                Milestone 3.1
               </span>
             </div>
           </div>
@@ -197,12 +216,11 @@ function App() {
         {/* Intro */}
         <div className="text-center max-w-2xl mb-12">
           <h1 className="text-4xl font-extrabold tracking-tight bg-gradient-to-r from-white via-slate-100 to-slate-400 bg-clip-text text-transparent mb-4">
-            Verify Your PDF Text Ingestion
+            Question Extraction Engine
           </h1>
           <p className="text-slate-400 text-base leading-relaxed">
-            The core engine of PaperLens relies on high-quality text extraction. 
-            Upload a Previous Year Question (PYQ) paper PDF to parse pages instantly 
-            using the <code className="font-mono text-indigo-400 bg-indigo-950/40 border border-indigo-900/35 px-1.5 py-0.5 rounded text-sm">PyMuPDF</code> pipeline.
+            PaperLens converts raw examination texts into clean, structured question lists.
+            Upload a Previous Year Question (PYQ) paper PDF to parse pages and group questions with nested subquestions.
           </p>
         </div>
 
@@ -248,6 +266,31 @@ function App() {
                   <span className="text-[11px] font-mono text-slate-500 uppercase tracking-widest px-2.5 py-1 rounded bg-slate-900/60 border border-slate-800/80">
                     PDF format only · Max 25MB
                   </span>
+                </div>
+                <div className="pt-4 flex flex-col items-center space-y-2">
+                  <p className="text-xs text-slate-500 font-medium">Or test with one of our demo exam papers:</p>
+                  <div className="flex space-x-3">
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        loadDemoFile('/demo_exam.pdf', 'sample_exam.pdf');
+                      }}
+                      className="px-3.5 py-1.5 bg-indigo-950/40 hover:bg-indigo-900/40 border border-indigo-900/60 hover:border-indigo-500/50 rounded-lg text-xs font-semibold text-indigo-300 transition-all cursor-pointer shadow-sm"
+                    >
+                      Load Text-Based Exam
+                    </button>
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        loadDemoFile('/demo_scanned_exam.pdf', 'scanned_exam.pdf');
+                      }}
+                      className="px-3.5 py-1.5 bg-emerald-950/40 hover:bg-emerald-900/40 border border-emerald-900/60 hover:border-emerald-500/50 rounded-lg text-xs font-semibold text-emerald-300 transition-all cursor-pointer shadow-sm"
+                    >
+                      Load Scanned OCR Exam
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>
@@ -444,10 +487,24 @@ function App() {
                   )}
                 </div>
               </div>
-
               {/* Questions Tab Content */}
               {activeTab === 'questions' && (
                 <div className="flex-1 overflow-y-auto mt-4 pr-2 space-y-4">
+                  {/* Warnings Banner */}
+                  {extractionResult.warnings && extractionResult.warnings.length > 0 && (
+                    <div className="bg-amber-950/20 border border-amber-900/40 rounded-xl p-4 flex flex-col space-y-2 mb-4 animate-[fadeIn_0.3s_ease-out]">
+                      <div className="flex items-center space-x-2 text-amber-400 font-semibold text-sm">
+                        <AlertCircle className="w-4 h-4" />
+                        <span>Parser Warnings &amp; Sanity Checks</span>
+                      </div>
+                      <ul className="list-disc pl-5 text-xs text-amber-300/85 space-y-1">
+                        {extractionResult.warnings.map((warn, wIdx) => (
+                          <li key={wIdx}>{warn}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+
                   {extractionResult.questions.length === 0 ? (
                     <div className="flex flex-col items-center justify-center py-20 text-center">
                       <AlertCircle className="w-12 h-12 text-slate-500 mb-4" />
@@ -488,7 +545,7 @@ function App() {
                     return filteredQuestions.map((q, idx) => (
                       <div 
                         key={idx} 
-                        className="bg-slate-950/50 border border-slate-900 hover:border-slate-800 rounded-xl p-5 transition-all flex flex-col space-y-3 relative group overflow-hidden"
+                        className="bg-slate-950/50 border border-slate-900 hover:border-slate-800 rounded-xl p-5 transition-all flex flex-col space-y-4 relative group overflow-hidden"
                       >
                         {/* Card subtle hover highlight */}
                         <div className="absolute inset-0 bg-gradient-to-r from-indigo-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none" />
@@ -514,9 +571,32 @@ function App() {
                         </div>
                         
                         {/* Body: Text */}
-                        <p className="text-slate-350 text-sm leading-relaxed z-10 break-words select-text">
+                        <p className="text-slate-300 text-sm leading-relaxed z-10 break-words select-text">
                           {renderHighlightedText(q.questionText)}
                         </p>
+
+                        {/* Nested Subquestions List */}
+                        {q.subquestions && q.subquestions.length > 0 && (
+                          <div className="pl-6 border-l-2 border-indigo-950 space-y-3 mt-2 z-10">
+                            {q.subquestions.map((sub, sIdx) => (
+                              <div key={sIdx} className="bg-slate-900/30 border border-slate-900/60 rounded-lg p-3 hover:border-slate-850 transition-all flex flex-col space-y-2 relative">
+                                <div className="flex items-center justify-between gap-2">
+                                  <span className="font-mono font-semibold text-xs text-indigo-350 bg-indigo-950/30 border border-indigo-900/40 px-2.5 py-0.5 rounded">
+                                    {renderHighlightedText(sub.questionNumber)}
+                                  </span>
+                                  {sub.marks !== undefined && (
+                                    <span className="text-[10px] font-semibold px-1.5 py-0.2 rounded bg-slate-950/50 border border-slate-800 text-emerald-400 font-mono">
+                                      {sub.marks} {typeof sub.marks === 'number' || !isNaN(sub.marks) ? 'Marks' : ''}
+                                    </span>
+                                  )}
+                                </div>
+                                <p className="text-slate-400 text-xs leading-relaxed break-words select-text">
+                                  {renderHighlightedText(sub.questionText)}
+                                </p>
+                              </div>
+                            ))}
+                          </div>
+                        )}
                       </div>
                     ));
                   })()}
@@ -539,7 +619,7 @@ function App() {
       <footer className="border-t border-slate-900 bg-slate-950/40 py-6 mt-12">
         <div className="max-w-7xl mx-auto px-6 flex flex-col md:flex-row items-center justify-between text-xs text-slate-500 font-mono gap-4">
           <p>PaperLens © 2026 · Built with FastAPI, PyMuPDF &amp; Tesseract OCR</p>
-          <p>Milestone 2 — PDF Extraction with OCR Fallback Pipeline</p>
+          <p>Milestone 3 — Question Extraction Engine</p>
         </div>
       </footer>
     </div>
