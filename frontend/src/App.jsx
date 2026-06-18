@@ -187,7 +187,7 @@ function App() {
       <header className="border-b border-slate-900 bg-slate-950/80 backdrop-blur-md sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
           <div className="flex items-center space-x-3">
-            <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-indigo-500 to-indigo-600 flex items-center justify-center shadow-lg shadow-indigo-500/20">
+            <div className="w-9 h-9 rounded-lg bg-linear-gradient-to-br from-indigo-500 to-indigo-600 flex items-center justify-center shadow-lg shadow-indigo-500/20">
               <Sparkles className="w-5 h-5 text-white" />
             </div>
             <div>
@@ -215,7 +215,7 @@ function App() {
         
         {/* Intro */}
         <div className="text-center max-w-2xl mb-12">
-          <h1 className="text-4xl font-extrabold tracking-tight bg-gradient-to-r from-white via-slate-100 to-slate-400 bg-clip-text text-transparent mb-4">
+          <h1 className="text-4xl font-extrabold tracking-tight bg-linear-to-r from-white via-slate-100 to-slate-400 bg-clip-text text-transparent mb-4">
             Question Extraction Engine
           </h1>
           <p className="text-slate-400 text-base leading-relaxed">
@@ -246,7 +246,7 @@ function App() {
                 onChange={handleFileChange}
               />
               
-              <div className="absolute inset-0 bg-gradient-to-r from-indigo-500/5 to-emerald-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none" />
+              <div className="absolute inset-0 bg-linear-gradient-to-r from-indigo-500/5 to-emerald-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none" />
               
               <div className="flex flex-col items-center justify-center space-y-4 relative z-10">
                 <div className={`p-4 rounded-full bg-slate-900 border border-slate-800 text-slate-400 group-hover:text-indigo-400 group-hover:border-indigo-500/30 transition-all duration-300 shadow-inner
@@ -300,8 +300,8 @@ function App() {
         {/* Loading / Processing State */}
         {status === 'uploading' && (
           <div className="w-full max-w-md bg-slate-900/35 border border-slate-900/80 rounded-2xl p-8 text-center backdrop-blur-md shadow-2xl relative overflow-hidden">
-            <div className="absolute top-0 left-0 w-full h-[3px] bg-indigo-950">
-              <div className="h-full bg-gradient-to-r from-indigo-500 to-emerald-500 animate-[shimmer_1.5s_infinite]" style={{ width: '40%', backgroundSize: '200% 100%' }}></div>
+            <div className="absolute top-0 left-0 w-full h-4[10px] bg-indigo-950">
+              <div className="h-full bg-linear-gradient-to-r from-indigo-500 to-emerald-500 animate-[shimmer_1.5s_infinite]" style={{ width: '40%', backgroundSize: '200% 100%' }}></div>
             </div>
             
             <div className="flex flex-col items-center justify-center space-y-5">
@@ -436,7 +436,7 @@ function App() {
             </div>
 
             {/* Content Preview Card */}
-            <div className="lg:col-span-2 bg-slate-900/40 border border-slate-900/80 backdrop-blur-md rounded-2xl p-6 shadow-xl flex flex-col h-[600px]">
+            <div className="lg:col-span-2 bg-slate-900/40 border border-slate-900/80 backdrop-blur-md rounded-3xl p-6 shadow-xl flex flex-col max-h-[650px]">
               
               {/* Tab Bar and Toolbar */}
               <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-4 border-b border-slate-800/85 gap-4">
@@ -548,7 +548,7 @@ function App() {
                         className="bg-slate-950/50 border border-slate-900 hover:border-slate-800 rounded-xl p-5 transition-all flex flex-col space-y-4 relative group overflow-hidden"
                       >
                         {/* Card subtle hover highlight */}
-                        <div className="absolute inset-0 bg-gradient-to-r from-indigo-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none" />
+                        <div className="absolute inset-0 bg-linear-gradient-to-r from-indigo-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none" />
                         
                         {/* Top row: Number, Section, Marks */}
                         <div className="flex flex-wrap items-center justify-between gap-2 z-10">
@@ -571,7 +571,7 @@ function App() {
                         </div>
                         
                         {/* Body: Text */}
-                        <p className="text-slate-300 text-sm leading-relaxed z-10 break-words select-text">
+                        <p className="text-slate-300 text-sm leading-relaxed z-10 break-word select-text">
                           {renderHighlightedText(q.questionText)}
                         </p>
 
@@ -590,7 +590,7 @@ function App() {
                                     </span>
                                   )}
                                 </div>
-                                <p className="text-slate-400 text-xs leading-relaxed break-words select-text">
+                                <p className="text-slate-400 text-xs leading-relaxed break-word select-text">
                                   {renderHighlightedText(sub.questionText)}
                                 </p>
                               </div>
@@ -605,7 +605,7 @@ function App() {
 
               {/* Raw Text Tab Content */}
               {activeTab === 'raw_text' && (
-                <div className="flex-1 overflow-y-auto mt-4 pr-2 bg-slate-950/40 rounded-xl p-4 border border-slate-900/80 font-mono text-sm leading-relaxed text-slate-300 break-words whitespace-pre-wrap select-text">
+                <div className="flex-1 overflow-y-auto mt-4 pr-2 bg-slate-950/40 rounded-xl p-4 border border-slate-900/80 font-mono text-sm leading-relaxed text-slate-300 break-word whitespace-pre-wrap select-text">
                   {renderHighlightedText(extractionResult.extractedText)}
                 </div>
               )}
