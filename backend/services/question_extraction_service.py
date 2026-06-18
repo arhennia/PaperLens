@@ -49,7 +49,10 @@ class SequenceTracker:
     def get_expected_next_value(self):
         if not self.values:
             return 1
-        return self.values[-1] + 1
+        for val in reversed(self.values):
+            if val is not None:
+                return val + 1
+        return 1
 
     def add(self, val, raw):
         self.values.append(val)
@@ -110,11 +113,11 @@ def extract_marks_and_pattern(text: str) -> tuple[str, int | str | None, str | N
     Finds marks in text.
     Returns: (cleaned_text, marks_value, original_pattern)
     """
-    # 1. Multiplier in brackets: e.g. [2x5], (5 x 10)
-    match_mult = re.search(r'([\(\[]\s*(\d+\s*[xX]\s*\d+)\s*(?:marks?|M)?\s*[\)\]])', text, re.IGNORECASE)
+    # 1. Multiplier in brackets: e.g. [2x5], (5 x 10), [1 Mark X 5]
+    match_mult = re.search(r'([\(\[]\s*(\d+)\s*(?:marks?|m|mark\s+each)?\s*[xX\*]\s*(\d+)\s*(?:marks?|m)?\s*[\)\]])', text, re.IGNORECASE)
     if match_mult:
         pattern = match_mult.group(1)
-        val = match_mult.group(2).replace(" ", "").lower()
+        val = f"{match_mult.group(2)}x{match_mult.group(3)}"
         cleaned_text = text.replace(pattern, "")
         return cleaned_text, val, pattern
         
@@ -185,6 +188,10 @@ def normalize_document_text(text: str) -> str:
         
         # OCR fix: starts with l) or l.
         line = re.sub(r'^\s*l([\.\)\:\,])', r'1\1', line)
+        
+        # OCR fix: starts with a number/roman numeral followed by 's' or ordinal suffixes (st, nd, rd, th)
+        line = re.sub(r'^\s*(\d+)(?:st|nd|rd|th|[sS])(?=\s|$)', r'\1.', line)
+        line = re.sub(r'^\s*([ivxIVX]+)[sS](?=\s|$)', r'\1.', line)
         
         normalized_lines.append(line)
         
@@ -355,7 +362,7 @@ class ExamParser:
                 tracker = self.sub_sub_q_tracker if resolved_level == 3 else self.sub_q_tracker
                 
                 # Check for duplicate
-                if resolved_val in tracker.values:
+                if resolved_val is not None and resolved_val in tracker.values:
                     # Duplicate detected! Perform common-sense repair to the expected next value.
                     expected_val = tracker.get_expected_next_value()
                     expected_label = get_expected_label(tracker.expected_type, expected_val)
@@ -372,7 +379,7 @@ class ExamParser:
                 else:
                     # Check for gap
                     expected_val = tracker.get_expected_next_value()
-                    if len(tracker.values) > 0 and resolved_val > expected_val:
+                    if len(tracker.values) > 0 and resolved_val is not None and resolved_val > expected_val:
                         missing_labels = [get_expected_label(tracker.expected_type, v) for v in range(expected_val, resolved_val)]
                         self.warnings.append(
                             f"Warning: Missing subquestion {', '.join(missing_labels)} in {self.active_main_q['questionNumber']}."
@@ -417,11 +424,44 @@ class ExamParser:
             q_text, q_marks, q_pat = extract_marks_and_pattern(q_text)
             q_text = q_text.strip().rstrip(".:,-").strip()
             
+            # Parse multiplier if present and distribute to subquestions
+            marks_per_sub = None
+            if isinstance(q_marks, str) and 'x' in q_marks.lower():
+                try:
+                    parts = q_marks.lower().split('x')
+                    val1 = int(parts[0].strip())
+                    val2 = int(parts[1].strip())
+                    num_subs = len(q["subquestions"])
+                    
+                    if num_subs > 0:
+                        if val2 == num_subs:
+                            marks_per_sub = float(val1)
+                        elif val1 == num_subs:
+                            marks_per_sub = float(val2)
+                        else:
+                            # Heuristics: if one is 1 or smaller, it's likely the marks
+                            if val1 == 1 or val2 == 1:
+                                marks_per_sub = 1.0
+                            else:
+                                marks_per_sub = float(val1)
+                    else:
+                        marks_per_sub = float(val1)
+                    
+                    # Convert main question marks to total numeric value
+                    q_marks = float(val1 * val2)
+                except Exception:
+                    pass
+            
             p_subs = []
             for sq in q["subquestions"]:
                 sq_text = " ".join(sq["raw_lines"]).strip()
                 sq_text, sq_marks, sq_pat = extract_marks_and_pattern(sq_text)
                 sq_text = sq_text.strip().rstrip(".:,-").strip()
+                
+                # Distribute marks if not explicitly specified on the subquestion
+                if sq_marks is None and marks_per_sub is not None:
+                    sq_marks = marks_per_sub
+                    sq_pat = f"Distributed from multiplier {q_pat}"
                 
                 p_sub_subs = []
                 for ssq in sq["subquestions"]:
