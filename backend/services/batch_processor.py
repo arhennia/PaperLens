@@ -7,9 +7,9 @@ import traceback
 import fitz 
 from services.db_service import get_db
 from services.pdf_service import extract_text_from_pdf_bytes
-from services.question_extraction_service import parse_questions_from_text
+from services.question_extraction_service import parse_questions_from_text, extract_marks_and_pattern
 from services.analysis_services import DeduplicationService, SimilarityService, TopicClassificationService, PriorityScoreService
-from services.question_validation_service import validate_question, clean_question, normalize_question_number, DEBUG_MODE
+from services.question_validation_service import validate_question, clean_question, normalize_question_number, is_meta_instruction, DEBUG_MODE
 
 def detect_year_from_pdf(file_path: str, filename: str) -> tuple[int | None, str]:
     """
@@ -185,7 +185,7 @@ def run_batch_processing(session_id: str, years_override: dict = None):
                     rejected_count = 0
                     sum_confidence = 0.0
                     
-                    def save_recursive(q_list, parent_number=None, section=None):
+                    def save_recursive(q_list, parent_number=None, section=None, parent_context=""):
                         nonlocal total_extracted, accepted_count, rejected_count, sum_confidence
                         for q in q_list:
                             q_num = q.get("questionNumber")
@@ -193,56 +193,95 @@ def run_batch_processing(session_id: str, years_override: dict = None):
                             q_marks = q.get("marks")
                             q_sec = q.get("section", section)
                             
-                            total_extracted += 1
-                            
-                            # Normalize number and clean text
-                            normalized_num = normalize_question_number(q_num)
+                            # Clean text and normalize number
                             cleaned_text = clean_question(q_text)
+                            normalized_num = normalize_question_number(q_num)
                             
-                            # Validate question
-                            val_res = validate_question(cleaned_text)
-                            confidence = val_res["confidence"]
-                            status = val_res["validationStatus"]
-                            reason = val_res["reason"]
+                            # Check if this node has subquestions
+                            has_subs = len(q.get("subquestions", [])) > 0
                             
-                            sum_confidence += confidence
+                            # Determine if current question is a meta-instruction
+                            is_meta = is_meta_instruction(cleaned_text)
                             
-                            if status == "rejected":
-                                rejected_count += 1
-                                rj_uuid = f"rj_{paper_id}_{total_extracted}_{hashlib.md5(cleaned_text.encode('utf-8')).hexdigest()[:8]}"
-                                conn.execute(
-                                    """
-                                    INSERT INTO rejected_questions (
-                                        id, paper_id, question_text, confidence, reason, 
-                                        question_number, page_number, section, marks
-                                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-                                    """,
-                                    (rj_uuid, paper_id, cleaned_text, confidence, reason, normalized_num, 1, q_sec, q_marks)
-                                )
+                            # Calculate new parent context to pass down
+                            new_parent_context = parent_context
+                            if not is_meta and cleaned_text:
+                                # Strip marks patterns from parent context text
+                                parent_text_clean, _, _ = extract_marks_and_pattern(cleaned_text)
+                                parent_text_clean = re.sub(r'[\(\[]\s*\d+\s*(?:marks?|m|mark\s+each)?[xX\*]?\d*\s*[\)\]]', '', parent_text_clean, flags=re.IGNORECASE)
+                                parent_text_clean = parent_text_clean.strip().rstrip(".:,-").strip()
                                 
-                                # Print debug statement if active
-                                if DEBUG_MODE:
-                                    print(f"\n[DEBUG MODE] Rejected Question:")
-                                    print(f"Text: \"{cleaned_text}\"")
-                                    print(f"Reason: {reason}")
-                                    print(f"Confidence: {confidence}\n")
+                                if parent_text_clean:
+                                    if new_parent_context:
+                                        p_ctx_stripped = new_parent_context.rstrip(".:,-")
+                                        new_parent_context = f"{p_ctx_stripped}: {parent_text_clean}"
+                                    else:
+                                        new_parent_context = parent_text_clean
+                                        
+                            if has_subs:
+                                # If it has subquestions, it's a parent container. Skip saving it.
+                                save_recursive(q["subquestions"], q_num, q_sec, new_parent_context)
                             else:
-                                accepted_count += 1
-                                # Generate unique PK
-                                q_uuid = f"rq_{paper_id}_{accepted_count}_{hashlib.md5(cleaned_text.encode('utf-8')).hexdigest()[:8]}"
-                                conn.execute(
-                                    """
-                                    INSERT INTO raw_questions (
-                                        id, paper_id, question_text, question_text_normalized, content_hash, 
-                                        marks, section, question_type, question_number, page_number
-                                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-                                    """,
-                                    (q_uuid, paper_id, cleaned_text, "", "", q_marks, q_sec, "long" if q_marks and q_marks >= 10 else "short", normalized_num, 1)
-                                )
-                            
-                            # Save subquestions
-                            if q.get("subquestions"):
-                                save_recursive(q["subquestions"], q_num, q_sec)
+                                # It's a leaf node. Save it!
+                                total_extracted += 1
+                                
+                                # Combine text with parent context
+                                final_text = cleaned_text
+                                if parent_context:
+                                    p_ctx_clean = re.sub(r'^\s*(?:\([a-z0-9]+\)|[a-z0-9]+[\)\.\:\-])\s*', '', parent_context, flags=re.IGNORECASE).strip().lower()
+                                    sub_text_clean = cleaned_text.lower().strip()
+                                    # Skip prepending if parent context is essentially duplicate or part of subquestion
+                                    if p_ctx_clean and sub_text_clean and (p_ctx_clean == sub_text_clean or p_ctx_clean in sub_text_clean or sub_text_clean in p_ctx_clean):
+                                        final_text = cleaned_text
+                                    else:
+                                        p_ctx_stripped = parent_context.rstrip(".:,-")
+                                        final_text = f"{p_ctx_stripped}: {cleaned_text}"
+                                        
+                                final_text = clean_question(final_text)
+                                
+                                # Validate question
+                                val_res = validate_question(final_text)
+                                confidence = val_res["confidence"]
+                                status = val_res["validationStatus"]
+                                reason = val_res["reason"]
+                                
+                                sum_confidence += confidence
+                                
+                                if status == "rejected":
+                                    rejected_count += 1
+                                    rj_uuid = f"rj_{paper_id}_{total_extracted}_{hashlib.md5(final_text.encode('utf-8')).hexdigest()[:8]}"
+                                    conn.execute(
+                                        """
+                                        INSERT INTO rejected_questions (
+                                            id, paper_id, question_text, confidence, reason, 
+                                            question_number, page_number, section, marks
+                                        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                                        """,
+                                        (rj_uuid, paper_id, final_text, confidence, reason, normalized_num, 1, q_sec, q_marks)
+                                    )
+                                    
+                                    # Print debug statement if active
+                                    if DEBUG_MODE:
+                                        print(f"\n[DEBUG MODE] Rejected Question:")
+                                        print(f"Text: \"{final_text}\"")
+                                        print(f"Reason: {reason}")
+                                        print(f"Confidence: {confidence}\n")
+                                else:
+                                    accepted_count += 1
+                                    # Generate unique PK
+                                    q_uuid = f"rq_{paper_id}_{accepted_count}_{hashlib.md5(final_text.encode('utf-8')).hexdigest()[:8]}"
+                                    conn.execute(
+                                        """
+                                        INSERT INTO raw_questions (
+                                            id, paper_id, question_text, question_text_normalized, content_hash, 
+                                            marks, section, question_type, question_number, page_number
+                                        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                                        """,
+                                        (q_uuid, paper_id, final_text, "", "", q_marks, q_sec, "long" if q_marks and q_marks >= 10 else "short", normalized_num, 1)
+                                    )
+                                    
+                            # Save subquestions is handled conditionally inside has_subs check now
+
                                 
                     save_recursive(questions)
                     
