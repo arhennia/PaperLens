@@ -1346,7 +1346,7 @@ function App() {
                         <div className="flex flex-wrap items-center justify-between gap-3 z-10 relative">
                           <div className="flex items-center space-x-2.5">
                             {/* Priority badge */}
-                            <span className={`text-[9px] uppercase tracking-wider font-extrabold px-2 py-0.5 rounded-md border font-mono ${textCol} border-current/25 bg-current/[0.03]`}>
+                            <span className={`text-[9px] uppercase tracking-wider font-extrabold px-2 py-0.5 rounded-md border font-mono ${textCol} border-current/25 bg-current/3`}>
                               {q.priorityLevel.replace('_', ' ')}
                             </span>
                             {/* Chapter Tag */}
