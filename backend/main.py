@@ -438,3 +438,44 @@ def export_session_questions_csv(session_id: str):
     response = StreamingResponse(iter([output.getvalue()]), media_type="text/csv")
     response.headers["Content-Disposition"] = f"attachment; filename=ranked_questions_session_{session_id[:8]}.csv"
     return response
+
+@app.get("/api/sessions/{session_id}/rejected")
+def get_session_rejected_questions(session_id: str):
+    """
+    Retrieves the rejected questions for a session, useful for debugging.
+    """
+    with get_db() as conn:
+        cursor = conn.execute("SELECT status FROM analysis_sessions WHERE id = ?", (session_id,))
+        s_row = cursor.fetchone()
+        if not s_row:
+            raise HTTPException(status_code=404, detail="Session not found.")
+            
+        cursor = conn.execute(
+            """
+            SELECT rj.id, rj.question_text, rj.confidence, rj.reason, rj.question_number, rj.page_number, rj.section, rj.marks, p.filename
+            FROM rejected_questions rj
+            JOIN papers p ON rj.paper_id = p.id
+            WHERE p.session_id = ?
+            ORDER BY rj.confidence DESC
+            """,
+            (session_id,)
+        )
+        rejected = cursor.fetchall()
+        
+    return {
+        "sessionId": session_id,
+        "rejectedQuestions": [
+            {
+                "id": r["id"],
+                "questionText": r["question_text"],
+                "confidence": r["confidence"],
+                "reason": r["reason"],
+                "questionNumber": r["question_number"],
+                "pageNumber": r["page_number"],
+                "section": r["section"],
+                "marks": r["marks"],
+                "filename": r["filename"]
+            }
+            for r in rejected
+        ]
+    }

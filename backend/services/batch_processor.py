@@ -9,6 +9,7 @@ from services.db_service import get_db
 from services.pdf_service import extract_text_from_pdf_bytes
 from services.question_extraction_service import parse_questions_from_text
 from services.analysis_services import DeduplicationService, SimilarityService, TopicClassificationService, PriorityScoreService
+from services.question_validation_service import validate_question, clean_question, normalize_question_number, DEBUG_MODE
 
 def detect_year_from_pdf(file_path: str, filename: str) -> tuple[int | None, str]:
     """
@@ -149,6 +150,18 @@ def run_batch_processing(session_id: str, years_override: dict = None):
                                 """,
                                 (q_id, paper_id, dq["question_text"], "", "", dq["marks"], dq["section"], dq["question_type"], dq["question_number"], dq["page_number"])
                             )
+                        # Copy rejected questions from duplicate paper
+                        cursor_rj = conn.execute("SELECT question_text, confidence, reason, question_number, page_number, section, marks FROM rejected_questions WHERE paper_id = ?", (dup_id,))
+                        dup_rjs = cursor_rj.fetchall()
+                        for idx_rj, drj in enumerate(dup_rjs):
+                            rj_id = f"rj_{paper_id}_{idx_rj}_{hashlib.md5(drj['question_text'].encode('utf-8')).hexdigest()[:8]}"
+                            conn.execute(
+                                """
+                                INSERT INTO rejected_questions (id, paper_id, question_text, confidence, reason, question_number, page_number, section, marks)
+                                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                                """,
+                                (rj_id, paper_id, drj["question_text"], drj["confidence"], drj["reason"], drj["question_number"], drj["page_number"], drj["section"], drj["marks"])
+                            )
                         conn.execute(
                             "UPDATE papers SET extraction_status = ?, total_questions = ? WHERE id = ?",
                             ("extracted", len(dup_qs), paper_id)
@@ -165,30 +178,67 @@ def run_batch_processing(session_id: str, years_override: dict = None):
                 with get_db() as conn:
                     # Clear any stale raw questions for this paper
                     conn.execute("DELETE FROM raw_questions WHERE paper_id = ?", (paper_id,))
+                    conn.execute("DELETE FROM rejected_questions WHERE paper_id = ?", (paper_id,))
                     
-                    total_questions = 0
+                    total_extracted = 0
+                    accepted_count = 0
+                    rejected_count = 0
+                    sum_confidence = 0.0
                     
                     def save_recursive(q_list, parent_number=None, section=None):
-                        nonlocal total_questions
+                        nonlocal total_extracted, accepted_count, rejected_count, sum_confidence
                         for q in q_list:
                             q_num = q.get("questionNumber")
                             q_text = q.get("questionText", "")
                             q_marks = q.get("marks")
                             q_sec = q.get("section", section)
                             
-                            # Clean details
-                            # Generate unique PK
-                            q_uuid = f"rq_{paper_id}_{total_questions}_{hashlib.md5(q_text.encode('utf-8')).hexdigest()[:8]}"
-                            conn.execute(
-                                """
-                                INSERT INTO raw_questions (
-                                    id, paper_id, question_text, question_text_normalized, content_hash, 
-                                    marks, section, question_type, question_number, page_number
-                                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-                                """,
-                                (q_uuid, paper_id, q_text, "", "", q_marks, q_sec, "long" if q_marks and q_marks >= 10 else "short", q_num, 1)
-                            )
-                            total_questions += 1
+                            total_extracted += 1
+                            
+                            # Normalize number and clean text
+                            normalized_num = normalize_question_number(q_num)
+                            cleaned_text = clean_question(q_text)
+                            
+                            # Validate question
+                            val_res = validate_question(cleaned_text)
+                            confidence = val_res["confidence"]
+                            status = val_res["validationStatus"]
+                            reason = val_res["reason"]
+                            
+                            sum_confidence += confidence
+                            
+                            if status == "rejected":
+                                rejected_count += 1
+                                rj_uuid = f"rj_{paper_id}_{total_extracted}_{hashlib.md5(cleaned_text.encode('utf-8')).hexdigest()[:8]}"
+                                conn.execute(
+                                    """
+                                    INSERT INTO rejected_questions (
+                                        id, paper_id, question_text, confidence, reason, 
+                                        question_number, page_number, section, marks
+                                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                                    """,
+                                    (rj_uuid, paper_id, cleaned_text, confidence, reason, normalized_num, 1, q_sec, q_marks)
+                                )
+                                
+                                # Print debug statement if active
+                                if DEBUG_MODE:
+                                    print(f"\n[DEBUG MODE] Rejected Question:")
+                                    print(f"Text: \"{cleaned_text}\"")
+                                    print(f"Reason: {reason}")
+                                    print(f"Confidence: {confidence}\n")
+                            else:
+                                accepted_count += 1
+                                # Generate unique PK
+                                q_uuid = f"rq_{paper_id}_{accepted_count}_{hashlib.md5(cleaned_text.encode('utf-8')).hexdigest()[:8]}"
+                                conn.execute(
+                                    """
+                                    INSERT INTO raw_questions (
+                                        id, paper_id, question_text, question_text_normalized, content_hash, 
+                                        marks, section, question_type, question_number, page_number
+                                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                                    """,
+                                    (q_uuid, paper_id, cleaned_text, "", "", q_marks, q_sec, "long" if q_marks and q_marks >= 10 else "short", normalized_num, 1)
+                                )
                             
                             # Save subquestions
                             if q.get("subquestions"):
@@ -196,10 +246,21 @@ def run_batch_processing(session_id: str, years_override: dict = None):
                                 
                     save_recursive(questions)
                     
+                    # Print validation report in logs
+                    avg_confidence = round(sum_confidence / total_extracted, 1) if total_extracted > 0 else 0
+                    print(f"\n==================================================")
+                    print(f"VALIDATION REPORT FOR PAPER: {filename}")
+                    print(f"--------------------------------------------------")
+                    print(f"Total Extracted:    {total_extracted}")
+                    print(f"Accepted (Main DB): {accepted_count}")
+                    print(f"Rejected:           {rejected_count}")
+                    print(f"Average Confidence: {avg_confidence}%")
+                    print(f"==================================================\n")
+                    
                     # Update paper metadata
                     conn.execute(
                         "UPDATE papers SET extraction_status = ?, total_pages = ?, total_questions = ? WHERE id = ?",
-                        ("extracted", page_count, total_questions, paper_id)
+                        ("extracted", page_count, accepted_count, paper_id)
                     )
             except Exception as e:
                 traceback.print_exc()

@@ -137,6 +137,20 @@ def init_db():
         );
         """,
         """
+        CREATE TABLE IF NOT EXISTS rejected_questions (
+            id TEXT PRIMARY KEY,
+            paper_id TEXT NOT NULL,
+            question_text TEXT NOT NULL,
+            confidence REAL NOT NULL,
+            reason TEXT NOT NULL,
+            question_number TEXT,
+            page_number INTEGER,
+            section TEXT,
+            marks REAL,
+            FOREIGN KEY (paper_id) REFERENCES papers(id) ON DELETE CASCADE
+        );
+        """,
+        """
         CREATE TABLE IF NOT EXISTS question_occurrences (
             id TEXT PRIMARY KEY,
             group_id TEXT NOT NULL,

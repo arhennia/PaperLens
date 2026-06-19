@@ -347,14 +347,14 @@ function App() {
     <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col font-sans selection:bg-indigo-500/30 selection:text-indigo-200 relative overflow-x-hidden">
       
       {/* Premium Decorative Blobs */}
-      <div className="absolute top-[-20%] left-[-10%] w-[500px] h-[500px] bg-indigo-900/10 rounded-full blur-[140px] pointer-events-none -z-10" />
-      <div className="absolute bottom-[-10%] right-[-10%] w-[500px] h-[500px] bg-emerald-900/10 rounded-full blur-[140px] pointer-events-none -z-10" />
+      <div className="absolute top-[-20%] left-[-10%] w-125 h-125 bg-indigo-900/10 rounded-full blur-[140px] pointer-events-none -z-10" />
+      <div className="absolute bottom-[-10%] right-[-10%] w-125 h-125 bg-emerald-900/10 rounded-full blur-[140px] pointer-events-none -z-10" />
 
       {/* Header */}
       <header className="border-b border-slate-900 bg-slate-950/80 backdrop-blur-md sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
           <div className="flex items-center space-x-3">
-            <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-indigo-500 to-indigo-600 flex items-center justify-center shadow-lg shadow-indigo-500/20">
+            <div className="w-9 h-9 rounded-lg bg-linear-to-br from-indigo-500 to-indigo-600 flex items-center justify-center shadow-lg shadow-indigo-500/20">
               <Sparkles className="w-5 h-5 text-white animate-pulse" />
             </div>
             <div>
@@ -389,7 +389,7 @@ function App() {
             
             {/* Intro */}
             <div className="text-center max-w-2xl mx-auto space-y-3">
-              <h1 className="text-4xl font-extrabold tracking-tight bg-gradient-to-r from-white via-slate-100 to-slate-400 bg-clip-text text-transparent">
+              <h1 className="text-4xl font-extrabold tracking-tight bg-linear-to-r from-white via-slate-100 to-slate-400 bg-clip-text text-transparent">
                 Multi-PDF Exam Analyzer
               </h1>
               <p className="text-slate-400 text-sm leading-relaxed">
@@ -421,7 +421,7 @@ function App() {
                   onChange={handleFileChange}
                 />
                 
-                <div className="absolute inset-0 bg-gradient-to-r from-indigo-500/5 to-emerald-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none" />
+                <div className="absolute inset-0 bg-linear-to-r from-indigo-500/5 to-emerald-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none" />
                 
                 <div className="flex flex-col items-center justify-center space-y-3 relative z-10">
                   <div className={`p-3 rounded-full bg-slate-900 border border-slate-800 text-slate-400 group-hover:text-indigo-400 group-hover:border-indigo-500/30 transition-all duration-300 shadow-inner
@@ -454,7 +454,7 @@ function App() {
                     {selectedFiles.map((item) => (
                       <div key={item.id} className="p-3 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs bg-slate-900/20">
                         <div className="flex items-center space-x-2.5 truncate">
-                          <FileText className="w-4 h-4 text-slate-400 flex-shrink-0" />
+                          <FileText className="w-4 h-4 text-slate-400 shrink-0" />
                           <div className="truncate">
                             <p className="text-slate-200 font-medium truncate max-w-xs sm:max-w-md">{item.name}</p>
                             <p className="text-[10px] text-slate-500">{(item.size / (1024 * 1024)).toFixed(2)} MB</p>
@@ -668,7 +668,7 @@ function App() {
                 
                 {/* Step 1: Upload */}
                 <div className="relative">
-                  <span className="absolute left-[-29px] top-0.5 w-4 h-4 rounded-full bg-emerald-500 flex items-center justify-center text-[9px] text-emerald-950 font-bold">✓</span>
+                  <span className="absolute left-7.25 top-0.5 w-4 h-4 rounded-full bg-emerald-500 flex items-center justify-center text-[9px] text-emerald-950 font-bold">✓</span>
                   <div>
                     <h4 className="font-semibold text-slate-200">Session Initialized</h4>
                     <p className="text-slate-500 text-[10px]">PDF files saved to uploader server workspace</p>
@@ -678,9 +678,9 @@ function App() {
                 {/* Step 2: Extraction */}
                 <div className="relative">
                   {pollingData.status === 'created' || pollingData.status === 'extracting' ? (
-                    <span className="absolute left-[-29px] top-0.5 w-4 h-4 rounded-full bg-indigo-600 flex items-center justify-center text-[9px] text-indigo-200 animate-pulse font-bold">⋯</span>
+                    <span className="absolute left-7.25 top-0.5 w-4 h-4 rounded-full bg-indigo-600 flex items-center justify-center text-[9px] text-indigo-200 animate-pulse font-bold">⋯</span>
                   ) : (
-                    <span className="absolute left-[-29px] top-0.5 w-4 h-4 rounded-full bg-emerald-500 flex items-center justify-center text-[9px] text-emerald-950 font-bold">✓</span>
+                    <span className="absolute left-7.25 top-0.5 w-4 h-4 rounded-full bg-emerald-500 flex items-center justify-center text-[9px] text-emerald-950 font-bold">✓</span>
                   )}
                   <div>
                     <h4 className="font-semibold text-slate-200">Per-PDF Processing &amp; Extraction</h4>
@@ -691,11 +691,11 @@ function App() {
                       {pollingData.papers.map(p => (
                         <div key={p.id} className="p-2.5 flex items-center justify-between gap-3">
                           <div className="flex items-center space-x-2 truncate">
-                            <FileText className="w-3.5 h-3.5 text-slate-500 flex-shrink-0" />
+                            <FileText className="w-3.5 h-3.5 text-slate-500 shrink-0" />
                             <span className="text-slate-300 truncate font-mono">{p.filename}</span>
                           </div>
 
-                          <div className="flex items-center space-x-2 flex-shrink-0">
+                          <div className="flex items-center space-x-2 shrink-0">
                             {p.status === 'extracting' && (
                               <span className="text-indigo-400 flex items-center space-x-1">
                                 <RefreshCw className="w-3 h-3 animate-spin" />
@@ -723,11 +723,11 @@ function App() {
                 {/* Step 3: Deduplication and Scoring */}
                 <div className="relative">
                   {pollingData.status === 'complete' ? (
-                    <span className="absolute left-[-29px] top-0.5 w-4 h-4 rounded-full bg-emerald-500 flex items-center justify-center text-[9px] text-emerald-950 font-bold">✓</span>
+                    <span className="absolute left-7.25 top-0.5 w-4 h-4 rounded-full bg-emerald-500 flex items-center justify-center text-[9px] text-emerald-950 font-bold">✓</span>
                   ) : pollingData.status === 'merging' || pollingData.status === 'analyzing' ? (
-                    <span className="absolute left-[-29px] top-0.5 w-4 h-4 rounded-full bg-indigo-600 flex items-center justify-center text-[9px] text-indigo-200 animate-pulse font-bold">⋯</span>
+                    <span className="absolute left-7.25 top-0.5 w-4 h-4 rounded-full bg-indigo-600 flex items-center justify-center text-[9px] text-indigo-200 animate-pulse font-bold">⋯</span>
                   ) : (
-                    <span className="absolute left-[-29px] top-0.5 w-4 h-4 rounded-full bg-slate-800 flex items-center justify-center text-[9px] text-slate-500 font-bold">3</span>
+                    <span className="absolute left-7.25 top-0.5 w-4 h-4 rounded-full bg-slate-800 flex items-center justify-center text-[9px] text-slate-500 font-bold">3</span>
                   )}
                   <div>
                     <h4 className="font-semibold text-slate-300">Deduplication &amp; priority scoring</h4>
@@ -831,7 +831,7 @@ function App() {
                 {examName && <p className="text-xs text-slate-400">{examName} ({examType.replace('_', ' ')})</p>}
               </div>
 
-              <div className="flex items-center space-x-2 flex-shrink-0">
+              <div className="flex items-center space-x-2 shrink-0">
                 <button
                   onClick={handleExportCSV}
                   className="px-4 py-2 bg-slate-900 hover:bg-slate-800 border border-slate-800 text-slate-200 rounded-xl text-xs font-semibold transition-all flex items-center space-x-2 cursor-pointer"
@@ -932,7 +932,7 @@ function App() {
 
                 <div className="flex-1 flex flex-col sm:flex-row items-center justify-around gap-4 py-2">
                   {/* Dynamic SVG Donut Chart */}
-                  <div className="relative w-36 h-36 flex items-center justify-center flex-shrink-0">
+                  <div className="relative w-36 h-36 flex items-center justify-center shrink-0">
                     <svg className="w-32 h-32" viewBox="0 0 100 100">
                       {/* Empty track */}
                       <circle cx="50" cy="50" r="40" stroke="#1e293b" strokeWidth="9" fill="transparent" />
@@ -970,7 +970,7 @@ function App() {
                               strokeDashoffset={dashoffset}
                               transform="rotate(-90 50 50)"
                               strokeLinecap="butt"
-                              className="transition-all duration-500 hover:stroke-[12] cursor-pointer"
+                              className="transition-all duration-500 hover:stroke-12 cursor-pointer"
                             />
                           );
                         });
@@ -985,7 +985,7 @@ function App() {
                   </div>
 
                   {/* Donut Legend with Clickable Filters */}
-                  <div className="space-y-2 text-[10px] w-full max-w-[150px]">
+                  <div className="space-y-2 text-[10px] w-full max-w-37.5">
                     {[
                       { key: 'critical', label: 'Critical', colorBg: 'bg-[#B5353C]' },
                       { key: 'very_high', label: 'Very High', colorBg: 'bg-[#C97A20]' },
@@ -1004,7 +1004,7 @@ function App() {
                               : 'border-transparent text-slate-400 hover:text-slate-200'}`}
                         >
                           <div className="flex items-center space-x-1.5">
-                            <span className={`w-2 h-2 rounded-full ${tier.colorBg} flex-shrink-0`} />
+                            <span className={`w-2 h-2 rounded-full ${tier.colorBg} shrink-0`} />
                             <span>{tier.label}</span>
                           </div>
                           <span className="font-mono font-semibold">{count}</span>
@@ -1027,7 +1027,7 @@ function App() {
                     analyticsData.focus_areas.map((area) => (
                       <div key={area.topic_id} className="space-y-1 text-[10px]">
                         <div className="flex justify-between font-mono">
-                          <span className="text-slate-300 font-semibold truncate max-w-[150px] sm:max-w-xs">{area.name}</span>
+                          <span className="text-slate-300 font-semibold truncate max-w-37.5 sm:max-w-xs">{area.name}</span>
                           <span className="text-indigo-400 font-bold">{area.freq_pct}% marks</span>
                         </div>
                         {/* Interactive Horizontal Progress Bar */}
@@ -1037,7 +1037,7 @@ function App() {
                             ${selectedChapterFilter === area.name ? 'bg-indigo-950 border border-indigo-900' : 'bg-slate-950'}`}
                         >
                           <div 
-                            className="h-full bg-gradient-to-r from-indigo-500 to-emerald-500 rounded-full transition-all duration-500 group-hover:opacity-85" 
+                            className="h-full bg-linear-to-r from-indigo-500 to-emerald-500 rounded-full transition-all duration-500 group-hover:opacity-85" 
                             style={{ width: `${area.freq_pct}%` }}
                           />
                         </div>
@@ -1097,7 +1097,7 @@ function App() {
 
                       return (
                         <div className="relative w-full flex flex-col items-center">
-                          <svg className="w-full max-w-[280px]" viewBox={`0 0 ${w} ${h}`}>
+                          <svg className="w-full max-w-70" viewBox={`0 0 ${w} ${h}`}>
                             <defs>
                               <linearGradient id="areaGrad" x1="0%" y1="0%" x2="0%" y2="100%">
                                 <stop offset="0%" stopColor="#6366f1" stopOpacity="0.18" />
@@ -1340,7 +1340,7 @@ function App() {
                         className={`border-l-4 rounded-xl p-4 transition-all duration-300 relative group overflow-hidden ${borderCol} ${bgCol}`}
                       >
                         {/* Background highlight */}
-                        <div className="absolute inset-0 bg-gradient-to-r from-indigo-500/[0.02] to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none" />
+                        <div className="absolute inset-0 bg-linear-to-r from-indigo-500/2 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none" />
 
                         {/* Top Summary Row */}
                         <div className="flex flex-wrap items-center justify-between gap-3 z-10 relative">
@@ -1457,7 +1457,7 @@ function App() {
                                         Number: <strong className="text-slate-300 font-semibold">{occ.questionNumber}</strong>
                                       </span>
                                       <span className="text-slate-500 hidden sm:inline">·</span>
-                                      <span className="text-slate-500 truncate max-w-[150px] sm:max-w-xs block hidden sm:inline" title={occ.filename}>
+                                      <span className="text-slate-500 truncate max-w-37.5 sm:max-w-xs block" title={occ.filename}>
                                         {occ.filename}
                                       </span>
                                     </div>
