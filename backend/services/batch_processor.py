@@ -247,7 +247,7 @@ def run_batch_processing(session_id: str, years_override: dict = None):
                     save_recursive(questions)
                     
                     # Print validation report in logs
-                    avg_confidence = round(sum_confidence / total_extracted, 1) if total_extracted > 0 else 0
+                    avg_confidence = round(sum_confidence / max(1, total_extracted), 1) if total_extracted > 0 else 0
                     print(f"\n==================================================")
                     print(f"VALIDATION REPORT FOR PAPER: {filename}")
                     print(f"--------------------------------------------------")
