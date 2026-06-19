@@ -325,3 +325,31 @@ def normalize_question_number(number: str) -> str:
     # Strip leading dot, colon, semicolon
     num = re.sub(r'^[\.\:\;\-\s]+', '', num)
     return num
+
+def is_meta_instruction(text: str) -> bool:
+    """
+    Returns True if the text matches generic exam instructions (e.g. 'Answer the following', 'Attempt any four').
+    """
+    clean = text.strip().lower()
+    if not clean:
+        return True
+        
+    # Check against known blacklist patterns
+    for pattern in INSTRUCTION_BLACKLIST:
+        if pattern.search(clean):
+            return True
+            
+    # Additional generic instruction patterns
+    meta_patterns = [
+        r'\banswer\s+(?:all|any|the\s+following|questions)\b',
+        r'\battempt\s+(?:all|any|the\s+following|questions)\b',
+        r'^\s*(?:answer|attempt|choose|select)\s+(?:the\s+following|any|all|questions|one|two|three|four|five)\b',
+        r'^\s*(?:answer|attempt)\s*$',
+    ]
+    
+    for pat in meta_patterns:
+        if re.search(pat, clean):
+            return True
+            
+    return False
+
