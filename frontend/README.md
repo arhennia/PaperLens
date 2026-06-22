@@ -1,16 +1,39 @@
-# React + Vite
+# PaperLens Frontend
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+This is the frontend application for **PaperLens**, an AI-powered question paper analyzer. It provides a sleek, interactive dashboard to upload exam papers, view analysis results, and explore trends.
 
-Currently, two official plugins are available:
+## Technologies Used
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+* **[React 19](https://react.dev/)**: For building the user interface.
+* **[Vite 8](https://vitejs.dev/)**: Fast, modern build tool and development server.
+* **[Tailwind CSS 4](https://tailwindcss.com/)**: For rapid, utility-first styling.
+* **[Lucide React](https://lucide.dev/)**: For beautiful and consistent icons.
 
-## React Compiler
+## Features
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+* **Multi-PDF Upload Interface**: Seamlessly select and upload multiple previous year question papers at once.
+* **Analytics Dashboard**: Interactive views for subject-wise breakdown, top repeated questions, and exam trends.
+* **Audit Views**: Interfaces to review rejected extractions and OCR logs.
 
-## Expanding the ESLint configuration
+## Getting Started
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+First, ensure the PaperLens backend server is running. Then, set up the frontend:
+
+1. Install dependencies:
+   ```bash
+   npm install
+   ```
+
+2. Start the development server:
+   ```bash
+   npm run dev
+   ```
+
+The application will be available at [http://localhost:5173](http://localhost:5173).
+
+## Scripts
+
+- `npm run dev`: Starts the development server.
+- `npm run build`: Builds the app for production.
+- `npm run lint`: Runs ESLint to check for code issues.
+- `npm run preview`: Previews the production build locally.
