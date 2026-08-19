@@ -1,183 +1,304 @@
-import sqlite3
 import os
+import logging
+from typing import Optional, Any, Dict, List
+
+logger = logging.getLogger("paperlens.db_service")
+
+# ==============================================================================
+# Supabase Client Configuration & Initialization
+# ==============================================================================
+SUPABASE_URL = os.getenv("SUPABASE_URL", "")
+SUPABASE_KEY = os.getenv("SUPABASE_KEY", "")
+SUPABASE_JWT_SECRET = os.getenv("SUPABASE_JWT_SECRET", "")
+SUPABASE_STORAGE_BUCKET = os.getenv("SUPABASE_STORAGE_BUCKET", "exam-papers")
+
+_supabase_client = None
+
+def get_supabase_client():
+    """
+    Returns the initialized Supabase client instance.
+    If credentials are not yet configured in the environment, logs a warning
+    and returns None without throwing boot-time fatal crashes.
+    """
+    global _supabase_client
+    if _supabase_client is not None:
+        return _supabase_client
+
+    if not SUPABASE_URL or not SUPABASE_KEY or SUPABASE_URL == "your_supabase_project_url":
+        logger.warning(
+            "Supabase credentials (SUPABASE_URL / SUPABASE_KEY) are not configured. "
+            "Database operations requiring live Supabase connection will be stubbed."
+        )
+        return None
+
+    try:
+        from supabase import create_client, Client
+        _supabase_client = create_client(SUPABASE_URL, SUPABASE_KEY)
+        logger.info("Supabase client initialized successfully.")
+        return _supabase_client
+    except Exception as e:
+        logger.error(f"Failed to initialize Supabase client: {e}")
+        return None
+
+
+# ==============================================================================
+# Storage Path Helper
+# Format: {user_id}/{folder_id}/{paper_id}.pdf
+# ==============================================================================
+def build_storage_path(user_id: str, folder_id: str, paper_id: str, filename: Optional[str] = None) -> str:
+    """
+    Constructs the canonical Supabase Storage path for an exam paper PDF.
+    Format: {user_id}/{folder_id}/{paper_id}.pdf
+    """
+    u_id = user_id or "anonymous"
+    f_id = folder_id or "default"
+    p_id = paper_id or "paper"
+    return f"{u_id}/{f_id}/{p_id}.pdf"
+
+
+# ==============================================================================
+# Profiles Service Stub (Auth & User Metadata)
+# ==============================================================================
+class ProfilesDB:
+    @staticmethod
+    def get_profile(user_id: str) -> Optional[Dict[str, Any]]:
+        client = get_supabase_client()
+        if not client:
+            return None
+        response = client.table("profiles").select("*").eq("id", user_id).execute()
+        return response.data[0] if response.data else None
+
+    @staticmethod
+    def create_profile(profile_data: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+        client = get_supabase_client()
+        if not client:
+            return None
+        response = client.table("profiles").insert(profile_data).execute()
+        return response.data[0] if response.data else None
+
+    @staticmethod
+    def update_profile(user_id: str, updates: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+        client = get_supabase_client()
+        if not client:
+            return None
+        response = client.table("profiles").update(updates).eq("id", user_id).execute()
+        return response.data[0] if response.data else None
+
+
+# ==============================================================================
+# Folders Service Stub (Organization & Subject Bundles)
+# ==============================================================================
+class FoldersDB:
+    @staticmethod
+    def create_folder(folder_data: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+        client = get_supabase_client()
+        if not client:
+            return None
+        response = client.table("folders").insert(folder_data).execute()
+        return response.data[0] if response.data else None
+
+    @staticmethod
+    def get_user_folders(user_id: str) -> List[Dict[str, Any]]:
+        client = get_supabase_client()
+        if not client:
+            return []
+        response = client.table("folders").select("*").eq("user_id", user_id).order("created_at").execute()
+        return response.data or []
+
+    @staticmethod
+    def get_folder(folder_id: str) -> Optional[Dict[str, Any]]:
+        client = get_supabase_client()
+        if not client:
+            return None
+        response = client.table("folders").select("*").eq("id", folder_id).execute()
+        return response.data[0] if response.data else None
+
+    @staticmethod
+    def delete_folder(folder_id: str) -> bool:
+        client = get_supabase_client()
+        if not client:
+            return False
+        client.table("folders").delete().eq("id", folder_id).execute()
+        return True
+
+
+# ==============================================================================
+# Analysis Sessions Service Stub
+# ==============================================================================
+class SessionsDB:
+    @staticmethod
+    def create_session(session_data: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+        client = get_supabase_client()
+        if not client:
+            return None
+        response = client.table("analysis_sessions").insert(session_data).execute()
+        return response.data[0] if response.data else None
+
+    @staticmethod
+    def get_session(session_id: str) -> Optional[Dict[str, Any]]:
+        client = get_supabase_client()
+        if not client:
+            return None
+        response = client.table("analysis_sessions").select("*").eq("id", session_id).execute()
+        return response.data[0] if response.data else None
+
+    @staticmethod
+    def update_session(session_id: str, updates: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+        client = get_supabase_client()
+        if not client:
+            return None
+        response = client.table("analysis_sessions").update(updates).eq("id", session_id).execute()
+        return response.data[0] if response.data else None
+
+
+# ==============================================================================
+# Papers Service Stub (Storage Path & Extraction State)
+# ==============================================================================
+class PapersDB:
+    @staticmethod
+    def create_paper(paper_data: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+        client = get_supabase_client()
+        if not client:
+            return None
+        response = client.table("papers").insert(paper_data).execute()
+        return response.data[0] if response.data else None
+
+    @staticmethod
+    def get_paper(paper_id: str) -> Optional[Dict[str, Any]]:
+        client = get_supabase_client()
+        if not client:
+            return None
+        response = client.table("papers").select("*").eq("id", paper_id).execute()
+        return response.data[0] if response.data else None
+
+    @staticmethod
+    def get_papers_by_session(session_id: str) -> List[Dict[str, Any]]:
+        client = get_supabase_client()
+        if not client:
+            return []
+        response = client.table("papers").select("*").eq("session_id", session_id).execute()
+        return response.data or []
+
+    @staticmethod
+    def update_paper(paper_id: str, updates: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+        client = get_supabase_client()
+        if not client:
+            return None
+        response = client.table("papers").update(updates).eq("id", paper_id).execute()
+        return response.data[0] if response.data else None
+
+
+# ==============================================================================
+# Questions & Analysis DB Service Stub
+# ==============================================================================
+class QuestionsDB:
+    @staticmethod
+    def insert_raw_questions(questions: List[Dict[str, Any]]) -> bool:
+        client = get_supabase_client()
+        if not client or not questions:
+            return False
+        client.table("raw_questions").insert(questions).execute()
+        return True
+
+    @staticmethod
+    def get_raw_questions(session_id: str) -> List[Dict[str, Any]]:
+        client = get_supabase_client()
+        if not client:
+            return []
+        response = client.table("raw_questions").select("*, papers!inner(session_id)").eq("papers.session_id", session_id).execute()
+        return response.data or []
+
+    @staticmethod
+    def insert_question_groups(groups: List[Dict[str, Any]]) -> bool:
+        client = get_supabase_client()
+        if not client or not groups:
+            return False
+        client.table("question_groups").insert(groups).execute()
+        return True
+
+    @staticmethod
+    def get_question_groups(session_id: str) -> List[Dict[str, Any]]:
+        client = get_supabase_client()
+        if not client:
+            return []
+        response = client.table("question_groups").select("*, topics(name)").eq("session_id", session_id).order("priority_score", desc=True).execute()
+        return response.data or []
+
+    @staticmethod
+    def insert_rejected_questions(rejected_list: List[Dict[str, Any]]) -> bool:
+        client = get_supabase_client()
+        if not client or not rejected_list:
+            return False
+        client.table("rejected_questions").insert(rejected_list).execute()
+        return True
+
+    @staticmethod
+    def get_rejected_questions(session_id: str) -> List[Dict[str, Any]]:
+        client = get_supabase_client()
+        if not client:
+            return []
+        response = client.table("rejected_questions").select("*, papers!inner(session_id, filename)").eq("papers.session_id", session_id).execute()
+        return response.data or []
+
+
+# ==============================================================================
+# Shared Links Service Stub (Public / Read-Only Sharing)
+# ==============================================================================
+class SharedLinksDB:
+    @staticmethod
+    def create_shared_link(link_data: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+        client = get_supabase_client()
+        if not client:
+            return None
+        response = client.table("shared_links").insert(link_data).execute()
+        return response.data[0] if response.data else None
+
+    @staticmethod
+    def get_shared_link(link_id: str) -> Optional[Dict[str, Any]]:
+        client = get_supabase_client()
+        if not client:
+            return None
+        response = client.table("shared_links").select("*").eq("id", link_id).execute()
+        return response.data[0] if response.data else None
+
+    @staticmethod
+    def revoke_shared_link(link_id: str) -> bool:
+        client = get_supabase_client()
+        if not client:
+            return False
+        client.table("shared_links").delete().eq("id", link_id).execute()
+        return True
+
+
+# ==============================================================================
+# Legacy get_db stub (Safe fallback to prevent import crashes during handoff)
+# ==============================================================================
+class _StubConnection:
+    def execute(self, *args, **kwargs):
+        return self
+    def executemany(self, *args, **kwargs):
+        return self
+    def fetchone(self):
+        return None
+    def fetchall(self):
+        return []
+    def commit(self):
+        pass
+    def rollback(self):
+        pass
+    def close(self):
+        pass
+
 from contextlib import contextmanager
-
-DB_PATH = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "paperlens.db")
-
 @contextmanager
 def get_db():
     """
-    Context manager to yield a thread-safe connection to the SQLite database.
-    Automatically handles commit/rollback and connection closing.
-    Enables WAL mode and foreign key constraints.
+    Transition stub context manager.
+    Enables existing pipeline modules to import smoothly while team members
+    (Swayam & Harshit) wire live Supabase operations via the DB service stubs above.
     """
-    conn = sqlite3.connect(DB_PATH, timeout=30.0)
-    conn.row_factory = sqlite3.Row
-    conn.execute("PRAGMA foreign_keys = ON;")
-    conn.execute("PRAGMA journal_mode = WAL;")
+    conn = _StubConnection()
     try:
         yield conn
-        conn.commit()
-    except Exception:
-        conn.rollback()
-        raise
     finally:
-        conn.close()
-
-def init_db():
-    """
-    Initializes the database tables and standard indexes for Milestone 4.
-    """
-    schema = [
-        """
-        CREATE TABLE IF NOT EXISTS analysis_sessions (
-            id TEXT PRIMARY KEY,
-            name TEXT NOT NULL,
-            status TEXT NOT NULL, -- 'created', 'extracting', 'merging', 'analyzing', 'complete', 'failed'
-            error_message TEXT,
-            analytics_json TEXT,
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-        );
-        """,
-        """
-        CREATE TABLE IF NOT EXISTS papers (
-            id TEXT PRIMARY KEY,
-            session_id TEXT NOT NULL,
-            filename TEXT NOT NULL,
-            year INTEGER,
-            year_source TEXT, -- 'filename', 'document_text', 'manual'
-            file_path TEXT NOT NULL,
-            content_hash TEXT NOT NULL,
-            total_pages INTEGER DEFAULT 0,
-            total_questions INTEGER DEFAULT 0,
-            extraction_status TEXT NOT NULL, -- 'queued', 'extracting', 'extracted', 'failed', 'needs_year'
-            error_message TEXT,
-            FOREIGN KEY (session_id) REFERENCES analysis_sessions(id) ON DELETE CASCADE
-        );
-        """,
-        """
-        CREATE TABLE IF NOT EXISTS user_context (
-            id TEXT PRIMARY KEY,
-            session_id TEXT NOT NULL,
-            subject TEXT,
-            exam_name TEXT,
-            exam_type TEXT, -- 'mid_sem', 'end_sem', 'internal', 'competitive'
-            total_marks INTEGER,
-            question_pattern TEXT,
-            chapters_json TEXT, -- JSON array of strings
-            FOREIGN KEY (session_id) REFERENCES analysis_sessions(id) ON DELETE CASCADE
-        );
-        """,
-        """
-        CREATE TABLE IF NOT EXISTS similarity_clusters (
-            id TEXT PRIMARY KEY,
-            session_id TEXT NOT NULL,
-            representative_group_id TEXT, -- Will set or update later
-            method TEXT NOT NULL, -- 'fuzzy', 'tfidf', 'embeddings'
-            similarity_threshold REAL NOT NULL,
-            group_count INTEGER DEFAULT 1,
-            FOREIGN KEY (session_id) REFERENCES analysis_sessions(id) ON DELETE CASCADE
-        );
-        """,
-        """
-        CREATE TABLE IF NOT EXISTS topics (
-            id TEXT PRIMARY KEY,
-            session_id TEXT NOT NULL,
-            name TEXT NOT NULL,
-            chapter_number INTEGER,
-            keywords_json TEXT, -- JSON list of strings
-            FOREIGN KEY (session_id) REFERENCES analysis_sessions(id) ON DELETE CASCADE
-        );
-        """,
-        """
-        CREATE TABLE IF NOT EXISTS question_groups (
-            id TEXT PRIMARY KEY,
-            session_id TEXT NOT NULL,
-            canonical_text TEXT NOT NULL,
-            cluster_id TEXT,
-            topic_id TEXT,
-            avg_marks REAL,
-            max_marks REAL,
-            first_year INTEGER,
-            last_year INTEGER,
-            year_span INTEGER,
-            priority_score REAL DEFAULT 0.0,
-            priority_level TEXT DEFAULT 'low',
-            f_freq REAL DEFAULT 0.0,
-            f_recency REAL DEFAULT 0.0,
-            f_marks REAL DEFAULT 0.0,
-            f_spread REAL DEFAULT 0.0,
-            f_cluster REAL DEFAULT 0.0,
-            f_chapter REAL DEFAULT 0.0,
-            priority_reason TEXT,
-            similarity_confidence REAL DEFAULT 1.0,
-            question_types_json TEXT, -- e.g. JSON array of strings: ["short", "long"]
-            score_computed_at TIMESTAMP,
-            FOREIGN KEY (session_id) REFERENCES analysis_sessions(id) ON DELETE CASCADE,
-            FOREIGN KEY (cluster_id) REFERENCES similarity_clusters(id) ON DELETE SET NULL,
-            FOREIGN KEY (topic_id) REFERENCES topics(id) ON DELETE SET NULL
-        );
-        """,
-        """
-        CREATE TABLE IF NOT EXISTS raw_questions (
-            id TEXT PRIMARY KEY,
-            paper_id TEXT NOT NULL,
-            question_text TEXT NOT NULL,
-            question_text_normalized TEXT NOT NULL,
-            content_hash TEXT NOT NULL,
-            marks REAL,
-            section TEXT,
-            question_type TEXT,
-            question_number TEXT,
-            page_number INTEGER,
-            group_id TEXT,
-            FOREIGN KEY (paper_id) REFERENCES papers(id) ON DELETE CASCADE,
-            FOREIGN KEY (group_id) REFERENCES question_groups(id) ON DELETE SET NULL
-        );
-        """,
-        """
-        CREATE TABLE IF NOT EXISTS rejected_questions (
-            id TEXT PRIMARY KEY,
-            paper_id TEXT NOT NULL,
-            question_text TEXT NOT NULL,
-            confidence REAL NOT NULL,
-            reason TEXT NOT NULL,
-            question_number TEXT,
-            page_number INTEGER,
-            section TEXT,
-            marks REAL,
-            FOREIGN KEY (paper_id) REFERENCES papers(id) ON DELETE CASCADE
-        );
-        """,
-        """
-        CREATE TABLE IF NOT EXISTS question_occurrences (
-            id TEXT PRIMARY KEY,
-            group_id TEXT NOT NULL,
-            raw_question_id TEXT NOT NULL,
-            paper_id TEXT NOT NULL,
-            year INTEGER,
-            marks REAL,
-            FOREIGN KEY (group_id) REFERENCES question_groups(id) ON DELETE CASCADE,
-            FOREIGN KEY (raw_question_id) REFERENCES raw_questions(id) ON DELETE CASCADE,
-            FOREIGN KEY (paper_id) REFERENCES papers(id) ON DELETE CASCADE
-        );
-        """
-    ]
-    
-    indexes = [
-        "CREATE INDEX IF NOT EXISTS idx_papers_hash ON papers(content_hash);",
-        "CREATE INDEX IF NOT EXISTS idx_raw_q_hash ON raw_questions(content_hash);",
-        "CREATE INDEX IF NOT EXISTS idx_q_groups_priority ON question_groups(session_id, priority_score DESC);",
-        "CREATE INDEX IF NOT EXISTS idx_occurrences_group ON question_occurrences(group_id);",
-        "CREATE INDEX IF NOT EXISTS idx_occurrences_raw ON question_occurrences(raw_question_id);"
-    ]
-    
-    with get_db() as conn:
-        for query in schema:
-            conn.execute(query)
-        for idx in indexes:
-            conn.execute(idx)
-
-# Initialize on module load
-init_db()
+        pass
