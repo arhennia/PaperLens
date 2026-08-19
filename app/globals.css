@@ -1,0 +1,150 @@
+@import "tailwindcss";
+
+/**
+ * Design tokens.
+ *
+ * Tailwind v4 configures itself from CSS, so this `@theme` block is the whole
+ * design system — there is no `tailwind.config.ts` to keep in sync. Every colour
+ * below becomes a utility class automatically (`bg-surface`, `text-muted`).
+ *
+ * Colours are defined once here as light values and swapped wholesale under
+ * `prefers-color-scheme: dark` further down. Component code never writes a raw
+ * hex value or a `dark:` variant for colour, so a palette change happens in one
+ * place.
+ */
+@theme {
+  --color-canvas: #f7f8fa;
+  --color-surface: #ffffff;
+  --color-surface-raised: #ffffff;
+  --color-border: #e3e6ea;
+  --color-border-strong: #cbd1d8;
+
+  --color-ink: #14181d;
+  --color-muted: #5c6672;
+  --color-faint: #8b95a1;
+
+  --color-accent: #2563eb;
+  --color-accent-hover: #1d4ed8;
+  --color-accent-soft: #eff4ff;
+
+  /* Priority levels. These are data, not decoration: the same five values the
+     database constrains `priority_level` to. */
+  --color-critical: #b42318;
+  --color-critical-soft: #fef3f2;
+  --color-very-high: #c4320a;
+  --color-very-high-soft: #fff4ed;
+  --color-high: #b54708;
+  --color-high-soft: #fffaeb;
+  --color-medium: #175cd3;
+  --color-medium-soft: #eff8ff;
+  --color-low: #475467;
+  --color-low-soft: #f2f4f7;
+
+  --color-success: #067647;
+  --color-success-soft: #ecfdf3;
+  --color-warning: #b54708;
+  --color-warning-soft: #fffaeb;
+  --color-danger: #b42318;
+  --color-danger-soft: #fef3f2;
+
+  --font-sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto,
+    "Helvetica Neue", Arial, sans-serif;
+  --font-mono: ui-monospace, "Cascadia Code", "Source Code Pro", Menlo, monospace;
+}
+
+@media (prefers-color-scheme: dark) {
+  @theme {
+    --color-canvas: #0d1117;
+    --color-surface: #161b22;
+    --color-surface-raised: #1c2128;
+    --color-border: #2d333b;
+    --color-border-strong: #444c56;
+
+    --color-ink: #e6edf3;
+    --color-muted: #9aa5b1;
+    --color-faint: #6e7781;
+
+    --color-accent: #4c8dff;
+    --color-accent-hover: #6ba1ff;
+    --color-accent-soft: #16243d;
+
+    --color-critical: #ff8b7e;
+    --color-critical-soft: #2d1614;
+    --color-very-high: #ffa07a;
+    --color-very-high-soft: #2d1a12;
+    --color-high: #f5bf6b;
+    --color-high-soft: #2b2113;
+    --color-medium: #79b8ff;
+    --color-medium-soft: #12203a;
+    --color-low: #9aa5b1;
+    --color-low-soft: #1c2128;
+
+    --color-success: #56d364;
+    --color-success-soft: #10251a;
+    --color-warning: #f5bf6b;
+    --color-warning-soft: #2b2113;
+    --color-danger: #ff8b7e;
+    --color-danger-soft: #2d1614;
+  }
+}
+
+html {
+  color-scheme: light dark;
+}
+
+body {
+  background-color: var(--color-canvas);
+  color: var(--color-ink);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Visible keyboard focus everywhere. Removing an outline without replacing it
+   makes the app unusable by keyboard, so the replacement is defined globally
+   rather than left to each component. */
+:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+  border-radius: 2px;
+}
+
+/**
+ * KaTeX sizing.
+ *
+ * KaTeX ships its own stylesheet (imported in `app/layout.tsx`) which sets an
+ * absolute font size. Left alone, rendered maths is visibly larger than the
+ * prose around it. Inheriting the surrounding size keeps a formula inline with
+ * its sentence.
+ */
+.katex {
+  font-size: 1.05em;
+}
+
+/* Long display equations must scroll inside their own box rather than widening
+   the page and introducing a horizontal body scrollbar. */
+.katex-display {
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding-block: 0.25rem;
+}
+
+@media print {
+  /* The printable study guide is the browser's own print dialog rather than a
+     generated PDF (D-044): controls disappear, content stays. */
+  .print\:hidden,
+  nav,
+  button {
+    display: none !important;
+  }
+
+  body {
+    background: #fff;
+    color: #000;
+  }
+
+  /* Never split a question across two pages — it makes a printed guide hard to
+     revise from. */
+  .print-avoid-break {
+    break-inside: avoid;
+  }
+}

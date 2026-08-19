@@ -1,0 +1,37 @@
+{
+  "name": "paperlens",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:db": "bash supabase/tests/run_tests.sh",
+    "types:generate": "supabase gen types typescript --local > types/database.generated.ts"
+  },
+  "dependencies": {
+    "@supabase/ssr": "0.7.0",
+    "@supabase/supabase-js": "2.58.0",
+    "katex": "0.18.4",
+    "next": "15.5.23",
+    "react": "19.1.1",
+    "react-dom": "19.1.1"
+  },
+  "//overrides": "Security patches for transitive dependencies. next 15.5.23 pins postcss at exactly 8.4.31 and takes sharp ^0.34.3 optionally; both of those versions carry advisories. Overriding is preferred to next@16, which is a breaking major upgrade. Both bumps stay inside the same major version, and vite already resolves postcss 8.5.26, so the combination is in wide use. Re-check on every Next.js upgrade: an override that outlives its reason silently pins a stale dependency.",
+  "overrides": {
+    "sharp": "0.35.3",
+    "postcss": "8.5.26"
+  },
+  "devDependencies": {
+    "@tailwindcss/postcss": "4.3.3",
+    "@types/katex": "0.16.8",
+    "@types/node": "22.18.1",
+    "@types/react": "19.1.13",
+    "@types/react-dom": "19.1.9",
+    "tailwindcss": "4.3.3",
+    "typescript": "5.9.2",
+    "vitest": "3.2.7"
+  }
+}
