@@ -5,3 +5,6 @@ python-multipart
 pytesseract
 pillow
 rapidfuzz
+supabase
+python-jose
+
