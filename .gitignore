@@ -26,9 +26,6 @@ build/
 # ==========================================
 # Environment Variables & Secrets (NEVER COMMIT)
 # ==========================================
-.env
-.env.*
-.env.local
 .env.development.local
 .env.test.local
 .env.production.local
@@ -82,3 +79,10 @@ tmp/
 # ==========================================
 .DS_Store
 Thumbs.db
+
+venv/
+**/venv/
+backend/venv/
+.venv/
+**/site-packages/
+config.bat
