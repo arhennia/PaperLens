@@ -82,3 +82,9 @@ tmp/
 # ==========================================
 .DS_Store
 Thumbs.db
+
+venv/
+**/venv/
+backend/venv/
+.venv/
+**/site-packages/
