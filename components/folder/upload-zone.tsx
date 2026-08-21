@@ -1,19 +1,6 @@
 "use client";
 
-/**
- * PDF upload zone.
- *
- * Multi-file drag-and-drop for exam papers. On drop or file selection:
- *   1. Creates a `papers` row per file via server action.
- *   2. Uploads each PDF to Supabase Storage at the returned path.
- *   3. Triggers extraction for the folder.
- *
- * Accepts only PDFs. Shows per-file upload progress. Disabled while an upload
- * batch is in progress.
- */
-
 import { useCallback, useState } from "react";
-
 import { createClient } from "@/lib/supabase/client";
 import { STORAGE_BUCKET } from "@/lib/env";
 import { createPaperRecord, triggerExtraction } from "@/app/actions/papers";
@@ -42,7 +29,7 @@ export function UploadZone({ folderId }: { folderId: string }) {
         file,
         status: "pending",
       }));
-      setFiles(uploadFiles);
+      setFiles((prev) => [...prev, ...uploadFiles]);
       setIsUploading(true);
 
       const supabase = createClient();
@@ -50,8 +37,8 @@ export function UploadZone({ folderId }: { folderId: string }) {
       for (let i = 0; i < uploadFiles.length; i++) {
         const uf = uploadFiles[i];
         setFiles((prev) =>
-          prev.map((f, idx) =>
-            idx === i ? { ...f, status: "uploading" } : f,
+          prev.map((f) =>
+            f.file.name === uf.file.name ? { ...f, status: "uploading" } : f,
           ),
         );
 
@@ -73,14 +60,14 @@ export function UploadZone({ folderId }: { folderId: string }) {
           if (error) throw error;
 
           setFiles((prev) =>
-            prev.map((f, idx) =>
-              idx === i ? { ...f, status: "done" } : f,
+            prev.map((f) =>
+              f.file.name === uf.file.name ? { ...f, status: "done" } : f,
             ),
           );
         } catch (err) {
           setFiles((prev) =>
-            prev.map((f, idx) =>
-              idx === i
+            prev.map((f) =>
+              f.file.name === uf.file.name
                 ? {
                     ...f,
                     status: "error",
@@ -108,7 +95,19 @@ export function UploadZone({ folderId }: { folderId: string }) {
   );
 
   return (
-    <div className="mt-6">
+    <div className="mt-6 rounded-2xl border border-border bg-surface p-6 shadow-xs">
+      <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center gap-2">
+          <span className="material-symbols-outlined text-primary text-[22px]">
+            upload_file
+          </span>
+          <h2 className="text-base font-bold text-ink">
+            Add Past Exam Papers
+          </h2>
+        </div>
+        <span className="text-xs text-muted">Supports multi-year batch PDF uploads</span>
+      </div>
+
       <div
         onDragOver={(e) => {
           e.preventDefault();
@@ -122,39 +121,31 @@ export function UploadZone({ folderId }: { folderId: string }) {
             handleFiles(e.dataTransfer.files);
           }
         }}
-        className={`rounded-xl border-2 border-dashed p-8 text-center transition-colors ${
+        className={`rounded-xl border-2 border-dashed p-8 text-center transition-all ${
           isDragging
-            ? "border-accent bg-accent-soft"
-            : "border-border hover:border-accent/50"
-        } ${isUploading ? "pointer-events-none opacity-60" : ""}`}
+            ? "border-primary bg-primary-soft/50 scale-[0.99]"
+            : "border-border hover:border-primary/50 bg-surface-container-low/40"
+        } ${isUploading ? "pointer-events-none opacity-70" : ""}`}
       >
         <div className="flex flex-col items-center gap-3">
-          <svg
-            className="h-10 w-10 text-faint"
-            fill="none"
-            viewBox="0 0 24 24"
-            strokeWidth={1}
-            stroke="currentColor"
-            aria-hidden="true"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              d="M12 16.5V9.75m0 0 3 3m-3-3-3 3M6.75 19.5a4.5 4.5 0 0 1-1.41-8.775 5.25 5.25 0 0 1 10.233-2.33 3 3 0 0 1 3.758 3.848A3.752 3.752 0 0 1 18 19.5H6.75Z"
-            />
-          </svg>
+          <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-primary-soft text-primary">
+            <span className="material-symbols-outlined text-2xl">
+              cloud_upload
+            </span>
+          </div>
 
           <div>
-            <p className="text-sm font-medium text-ink">
-              Drop PDF papers here
+            <p className="text-sm font-semibold text-ink">
+              Drag and drop exam question papers here
             </p>
             <p className="mt-1 text-xs text-faint">
-              or click to browse
+              Accepts PDF files up to 25MB each · Automatic year & question detection
             </p>
           </div>
 
-          <label className={`${buttonPrimary} cursor-pointer`}>
-            Choose files
+          <label className={`${buttonPrimary} cursor-pointer text-xs font-semibold shadow-xs`}>
+            <span className="material-symbols-outlined text-[16px]">add</span>
+            <span>Choose PDF Files</span>
             <input
               type="file"
               accept="application/pdf"
@@ -169,34 +160,44 @@ export function UploadZone({ folderId }: { folderId: string }) {
         </div>
       </div>
 
-      {/* Upload progress list */}
+      {/* Uploaded File Chips List */}
       {files.length > 0 && (
-        <ul className="mt-3 space-y-1">
-          {files.map((uf, idx) => (
-            <li
-              key={idx}
-              className="flex items-center gap-2 rounded-lg border border-border bg-surface px-3 py-2 text-sm"
-            >
-              <span className="flex-1 truncate text-ink">
-                {uf.file.name}
-              </span>
-              <span className="text-xs text-faint">
-                {formatFileSize(uf.file.size)}
-              </span>
-              {uf.status === "uploading" && (
-                <span className="text-xs text-accent">Uploading…</span>
-              )}
-              {uf.status === "done" && (
-                <span className="text-xs text-success">✓</span>
-              )}
-              {uf.status === "error" && (
-                <span className="text-xs text-danger" title={uf.error}>
-                  ✗ Failed
+        <div className="mt-4 border-t border-border pt-4">
+          <p className="text-xs font-semibold text-ink mb-2">Uploaded Materials ({files.length}):</p>
+          <div className="flex flex-wrap gap-2">
+            {files.map((uf, idx) => (
+              <div
+                key={idx}
+                className="flex items-center gap-2 rounded-lg border border-border bg-surface px-3 py-1.5 text-xs shadow-2xs"
+              >
+                <span className="material-symbols-outlined text-[16px] text-primary">
+                  picture_as_pdf
                 </span>
-              )}
-            </li>
-          ))}
-        </ul>
+                <span className="font-medium text-ink max-w-xs truncate">
+                  {uf.file.name}
+                </span>
+                <span className="text-[10px] text-faint">
+                  ({formatFileSize(uf.file.size)})
+                </span>
+
+                {uf.status === "uploading" && (
+                  <span className="flex items-center gap-1 text-[11px] font-medium text-primary">
+                    <span className="h-1.5 w-1.5 rounded-full bg-primary animate-ping" />
+                    Uploading…
+                  </span>
+                )}
+                {uf.status === "done" && (
+                  <span className="text-success text-[14px] font-bold">✓</span>
+                )}
+                {uf.status === "error" && (
+                  <span className="text-danger text-[11px]" title={uf.error}>
+                    ✗ Error
+                  </span>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
       )}
     </div>
   );
