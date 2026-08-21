@@ -242,6 +242,17 @@ def run_extract(job: jobs_db.Job) -> None:
     if failures:
         raise RuntimeError(f"Extraction failed for: {', '.join(failures)}")
 
+    # Extraction is the prerequisite for analysis. Queue it only after every
+    # pending paper succeeded so the analysis job never races incomplete data.
+    jobs_db.enqueue_job(
+        folder_id=job.folder_id,
+        user_id=job.user_id,
+        job_type="analyze",
+        idempotency_key=jobs_db.analyze_idempotency_key(
+            job.folder_id, job.user_id
+        ),
+    )
+
 
 # ---------------------------------------------------------------------------
 # Analysis

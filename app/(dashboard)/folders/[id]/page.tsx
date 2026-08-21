@@ -1,9 +1,10 @@
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { authenticateRoute } from "@/lib/auth";
+import { requireUser } from "@/lib/auth";
 
 import { FolderHeader } from "@/components/folder/folder-header";
 import { UploadZone } from "@/components/folder/upload-zone";
+import { PaperList } from "@/components/folder/paper-list";
 import { ProcessingStatus } from "@/components/folder/processing-status";
 import { AnalyticsSummary } from "@/components/folder/analytics-summary";
 import { TopicAccordions } from "@/components/folder/topic-accordions";
@@ -13,10 +14,11 @@ import { ShareModal } from "@/components/folder/share-modal";
 export default async function FolderPage({
   params,
 }: {
-  params: { id: string };
+  params: Promise<{ id: string }>;
 }) {
-  const auth = await authenticateRoute();
-  if (auth.response) return auth.response;
+  const { id } = await params;
+
+  await requireUser(`/folders/${id}`);
 
   const supabase = await createClient();
 
@@ -24,7 +26,7 @@ export default async function FolderPage({
   const { data: folder, error: folderError } = await supabase
     .from("folders")
     .select("*")
-    .eq("id", params.id)
+    .eq("id", id)
     .single();
 
   if (folderError || !folder) {
@@ -35,20 +37,26 @@ export default async function FolderPage({
   const { count: paperCount } = await supabase
     .from("papers")
     .select("*", { count: "exact", head: true })
-    .eq("folder_id", params.id);
+    .eq("folder_id", id);
+
+  const { data: papers } = await supabase
+    .from("papers")
+    .select("*")
+    .eq("folder_id", id)
+    .order("created_at", { ascending: false });
 
   // 3. Fetch analytics
   const { data: analytics } = await supabase
     .from("folder_analytics")
     .select("payload, computed_at")
-    .eq("folder_id", params.id)
+    .eq("folder_id", id)
     .single();
 
   // 4. Fetch topics and question groups
   const { data: topics } = await supabase
     .from("topics")
     .select("*")
-    .eq("folder_id", params.id)
+    .eq("folder_id", id)
     .order("ordinal");
 
   const { data: groups } = await supabase
@@ -59,7 +67,7 @@ export default async function FolderPage({
       questions(question_label, page_number, confidence, question_type, difficulty, marks)
     `,
     )
-    .eq("folder_id", params.id)
+    .eq("folder_id", id)
     .order("priority_score", { ascending: false });
 
   // Map to TopicGroup format
@@ -121,6 +129,8 @@ export default async function FolderPage({
       </FolderHeader>
 
       <UploadZone folderId={folder.id} />
+
+      <PaperList folderId={folder.id} papers={papers ?? []} />
 
       <ProcessingStatus folderId={folder.id} />
 

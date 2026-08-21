@@ -9,25 +9,47 @@
  * lands where they intended after signing in.
  */
 
-import { useSearchParams, useRouter } from "next/navigation";
-import { useState, useTransition, type FormEvent } from "react";
+import { useSearchParams } from "next/navigation";
+import {
+  useEffect,
+  useState,
+  useTransition,
+  type FormEvent,
+} from "react";
 
 import { createClient } from "@/lib/supabase/client";
 import { buttonPrimary, buttonSecondary } from "@/components/ui/button";
 
 export default function LoginPage() {
   const searchParams = useSearchParams();
-  const router = useRouter();
   const next = searchParams.get("next") ?? "/";
-  const authError = searchParams.get("error");
+  const authErrorCode = searchParams.get("error_code");
+  const authErrorDescription = searchParams.get("error_description");
 
   const [isSignUp, setIsSignUp] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(
-    authError === "auth" ? "Authentication failed. Please try again." : null,
+    authErrorDescription ??
+      (authErrorCode === "otp_expired"
+        ? "This confirmation link has expired or has already been used. Sign up again to receive a new link."
+        : null),
   );
   const [isPending, startTransition] = useTransition();
+
+  useEffect(() => {
+    const hashParams = new URLSearchParams(window.location.hash.slice(1));
+    const hashErrorCode = hashParams.get("error_code");
+    const hashErrorDescription = hashParams.get("error_description");
+
+    if (hashErrorDescription || hashErrorCode === "otp_expired") {
+      setError(
+        hashErrorDescription ??
+          "This confirmation link has expired or has already been used. Sign up again to receive a new link.",
+      );
+      window.history.replaceState(null, "", window.location.pathname + window.location.search);
+    }
+  }, []);
 
   async function handleEmailAuth(e: FormEvent) {
     e.preventDefault();
@@ -60,8 +82,7 @@ export default function LoginPage() {
           setError(signInError.message);
           return;
         }
-        router.push(next);
-        router.refresh();
+        window.location.assign(next);
       }
     });
   }

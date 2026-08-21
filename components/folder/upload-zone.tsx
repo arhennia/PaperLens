@@ -16,12 +16,17 @@ import { useCallback, useState } from "react";
 
 import { createClient } from "@/lib/supabase/client";
 import { STORAGE_BUCKET } from "@/lib/env";
-import { createPaperRecord, triggerExtraction } from "@/app/actions/papers";
+import {
+  createPaperRecord,
+  discardPaperRecord,
+  triggerExtraction,
+} from "@/app/actions/papers";
 import { formatFileSize } from "@/lib/format";
 import { buttonPrimary } from "@/components/ui/button";
 
 interface UploadFile {
   file: File;
+  year: string;
   status: "pending" | "uploading" | "done" | "error";
   error?: string;
 }
@@ -30,37 +35,49 @@ export function UploadZone({ folderId }: { folderId: string }) {
   const [files, setFiles] = useState<UploadFile[]>([]);
   const [isDragging, setIsDragging] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
+  const [processingError, setProcessingError] = useState<string | null>(null);
 
   const handleFiles = useCallback(
-    async (fileList: FileList) => {
+    (fileList: FileList) => {
       const pdfFiles = Array.from(fileList).filter(
-        (f) => f.type === "application/pdf",
+        (f) => f.type === "application/pdf" || f.name.toLowerCase().endsWith(".pdf"),
       );
       if (pdfFiles.length === 0) return;
 
       const uploadFiles: UploadFile[] = pdfFiles.map((file) => ({
         file,
+        year: file.name.match(/\b(19\d{2}|20\d{2})\b/)?.[1] ?? "",
         status: "pending",
       }));
       setFiles(uploadFiles);
-      setIsUploading(true);
+    },
+    [],
+  );
+
+  async function uploadBatch() {
+    if (files.length === 0 || isUploading) return;
+    setIsUploading(true);
+    setProcessingError(null);
 
       const supabase = createClient();
 
-      for (let i = 0; i < uploadFiles.length; i++) {
-        const uf = uploadFiles[i];
+      for (let i = 0; i < files.length; i++) {
+        const uf = files[i];
         setFiles((prev) =>
           prev.map((f, idx) =>
             idx === i ? { ...f, status: "uploading" } : f,
           ),
         );
 
+        let paperId: string | null = null;
         try {
           // Step 1: Create paper row.
-          const { storagePath } = await createPaperRecord(
+          const { paperId: createdPaperId, storagePath } = await createPaperRecord(
             folderId,
             uf.file.name,
+            uf.year ? Number(uf.year) : null,
           );
+          paperId = createdPaperId;
 
           // Step 2: Upload to Supabase Storage.
           const { error } = await supabase.storage
@@ -78,16 +95,16 @@ export function UploadZone({ folderId }: { folderId: string }) {
             ),
           );
         } catch (err) {
+          if (paperId) {
+            await discardPaperRecord(paperId, folderId);
+          }
           setFiles((prev) =>
             prev.map((f, idx) =>
               idx === i
                 ? {
                     ...f,
                     status: "error",
-                    error:
-                      err instanceof Error
-                        ? err.message
-                        : "Upload failed",
+                      error: err instanceof Error ? err.message : "Upload failed",
                   }
                 : f,
             ),
@@ -98,14 +115,14 @@ export function UploadZone({ folderId }: { folderId: string }) {
       // Step 3: Trigger extraction for the folder.
       try {
         await triggerExtraction(folderId);
-      } catch {
-        // Non-critical: the user can manually trigger later.
+      } catch (error) {
+        setProcessingError(
+          error instanceof Error ? error.message : "Could not queue processing.",
+        );
       }
 
-      setIsUploading(false);
-    },
-    [folderId],
-  );
+    setIsUploading(false);
+  }
 
   return (
     <div className="mt-6">
@@ -154,7 +171,7 @@ export function UploadZone({ folderId }: { folderId: string }) {
           </div>
 
           <label className={`${buttonPrimary} cursor-pointer`}>
-            Choose files
+            Add PDF papers
             <input
               type="file"
               accept="application/pdf"
@@ -169,6 +186,22 @@ export function UploadZone({ folderId }: { folderId: string }) {
         </div>
       </div>
 
+      {files.length > 0 && !isUploading && files.some((file) => file.status === "pending") && (
+        <button
+          type="button"
+          onClick={uploadBatch}
+          className={`${buttonPrimary} mt-3 w-full sm:w-auto`}
+        >
+          Upload {files.length} paper{files.length === 1 ? "" : "s"} to Supabase
+        </button>
+      )}
+
+      {processingError && (
+        <p className="mt-2 text-sm text-danger">
+          Upload succeeded, but processing could not be queued: {processingError}
+        </p>
+      )}
+
       {/* Upload progress list */}
       {files.length > 0 && (
         <ul className="mt-3 space-y-1">
@@ -180,6 +213,24 @@ export function UploadZone({ folderId }: { folderId: string }) {
               <span className="flex-1 truncate text-ink">
                 {uf.file.name}
               </span>
+              <input
+                type="number"
+                min={1990}
+                max={2100}
+                value={uf.year}
+                onChange={(event) => {
+                  const year = event.target.value;
+                  setFiles((prev) =>
+                    prev.map((file, fileIndex) =>
+                      fileIndex === idx ? { ...file, year } : file,
+                    ),
+                  );
+                }}
+                placeholder="Year"
+                aria-label={`Exam year for ${uf.file.name}`}
+                className="w-20 rounded-md border border-border bg-canvas px-2 py-1 text-xs text-ink"
+                disabled={isUploading}
+              />
               <span className="text-xs text-faint">
                 {formatFileSize(uf.file.size)}
               </span>
@@ -190,8 +241,8 @@ export function UploadZone({ folderId }: { folderId: string }) {
                 <span className="text-xs text-success">✓</span>
               )}
               {uf.status === "error" && (
-                <span className="text-xs text-danger" title={uf.error}>
-                  ✗ Failed
+                <span className="max-w-[18rem] text-right text-xs text-danger" title={uf.error}>
+                  ✗ {uf.error ?? "Upload failed"}
                 </span>
               )}
             </li>

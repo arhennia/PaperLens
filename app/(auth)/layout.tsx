@@ -15,7 +15,7 @@ export default async function AuthLayout({
   children: React.ReactNode;
 }) {
   const user = await getUser();
-  if (user) redirect("/");
+  if (user && process.env.NODE_ENV !== "development") redirect("/");
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-canvas px-4">

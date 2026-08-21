@@ -73,15 +73,25 @@ export async function requireFolder(folderId: string): Promise<FoldersRow> {
  * redirect and receive HTML where it expected JSON.
  */
 export async function authenticateRoute() {
+  const supabase = await createClient();
   const user = await getUser();
+
   if (!user) {
     return {
       user: null,
       supabase: null,
-      response: Response.json({ error: "Not signed in." }, { status: 401 }),
+      response: Response.json(
+        { error: "Not signed in." },
+        { status: 401 },
+      ),
     } as const;
   }
-  return { user, supabase: await createClient(), response: null } as const;
+
+  return {
+    user,
+    supabase,
+    response: null,
+  } as const;
 }
 
 /**

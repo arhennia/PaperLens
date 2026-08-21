@@ -18,11 +18,22 @@ export async function GET(request: NextRequest) {
   const { searchParams } = request.nextUrl;
   const code = searchParams.get("code");
   const next = searchParams.get("next") ?? "/";
+  const authError = searchParams.get("error");
+  const authErrorCode = searchParams.get("error_code");
+  const authErrorDescription = searchParams.get("error_description");
 
-  if (!code) {
+  if (!code || authError) {
     const errorUrl = request.nextUrl.clone();
     errorUrl.pathname = "/login";
-    errorUrl.searchParams.set("error", "auth");
+    errorUrl.search = "";
+    errorUrl.searchParams.set("error", authError ?? "auth");
+    if (authErrorCode) {
+      errorUrl.searchParams.set("error_code", authErrorCode);
+    }
+    if (authErrorDescription) {
+      errorUrl.searchParams.set("error_description", authErrorDescription);
+    }
+    errorUrl.searchParams.set("next", next);
     return NextResponse.redirect(errorUrl);
   }
 
@@ -32,7 +43,10 @@ export async function GET(request: NextRequest) {
   if (error) {
     const errorUrl = request.nextUrl.clone();
     errorUrl.pathname = "/login";
+    errorUrl.search = "";
     errorUrl.searchParams.set("error", "auth");
+    errorUrl.searchParams.set("error_description", error.message);
+    errorUrl.searchParams.set("next", next);
     return NextResponse.redirect(errorUrl);
   }
 

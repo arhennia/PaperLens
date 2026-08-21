@@ -2,6 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 
 import { createClient, getUser } from "@/lib/supabase/server";
+import { SignOutButton } from "@/components/dashboard/sign-out-button";
 
 /**
  * Dashboard layout shell.
@@ -90,29 +91,3 @@ export default async function DashboardLayout({
   );
 }
 
-/**
- * Sign-out as a Client Component button that calls supabase.auth.signOut
- * without needing a separate API route.
- */
-function SignOutButton() {
-  return (
-    <button
-      type="button"
-      className="mt-1 text-xs text-faint transition-colors hover:text-danger"
-      // onClick handled client-side in a wrapper component.
-      // For SSR simplicity, we use a form action approach later.
-      // For now, this button triggers navigation to a sign-out action.
-      onClick={() => {
-        // Dynamic import to avoid pulling client code into the server bundle.
-        import("@/lib/supabase/client").then(({ createClient }) => {
-          const supabase = createClient();
-          supabase.auth.signOut().then(() => {
-            window.location.href = "/login";
-          });
-        });
-      }}
-    >
-      Sign out
-    </button>
-  );
-}

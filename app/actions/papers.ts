@@ -13,8 +13,9 @@
 
 import { revalidatePath } from "next/cache";
 
-import { authenticateRoute, authorizeFolderRoute } from "@/lib/auth";
+import { authorizeFolderRoute } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
+import { STORAGE_BUCKET } from "@/lib/env";
 import {
   enqueueExtraction,
   enqueueAnalysis,
@@ -24,6 +25,7 @@ import {
 export async function createPaperRecord(
   folderId: string,
   originalFilename: string,
+  year: number | null,
 ) {
   const auth = await authorizeFolderRoute(folderId);
   if (auth.response) throw new Error("Folder not found.");
@@ -36,24 +38,81 @@ export async function createPaperRecord(
       user_id: auth.user.id,
       original_filename: originalFilename,
       storage_path: "", // Placeholder — set after we know the paper ID.
+      year,
+      year_source: year === null ? null : "manual",
     })
     .select("id")
     .single();
 
-  if (error) throw new Error("Failed to create paper record.");
+  if (error) {
+    console.error("Failed to create paper record:", error.message);
+    throw new Error(`Failed to create paper record: ${error.message}`);
+  }
 
   // Storage path follows the spec: {user_id}/{folder_id}/{paper_id}.pdf
   const storagePath = `${auth.user.id}/${folderId}/${data.id}.pdf`;
 
   // Update the row with the real path.
-  await supabase
+  const { error: pathError } = await supabase
     .from("papers")
     .update({ storage_path: storagePath })
     .eq("id", data.id);
 
+  if (pathError) {
+    console.error("Failed to set paper storage path:", pathError.message);
+    throw new Error(`Failed to prepare paper upload: ${pathError.message}`);
+  }
+
   revalidatePath(`/folders/${folderId}`);
 
   return { paperId: data.id, storagePath };
+}
+
+/** Deletes a paper row and its private PDF after verifying folder ownership. */
+export async function deletePaper(paperId: string, folderId: string) {
+  const auth = await authorizeFolderRoute(folderId);
+  if (auth.response) throw new Error("Folder not found.");
+
+  const supabase = await createClient();
+  const { data: paper, error: readError } = await supabase
+    .from("papers")
+    .select("storage_path")
+    .eq("id", paperId)
+    .eq("folder_id", folderId)
+    .single();
+
+  if (readError || !paper) throw new Error("Paper not found.");
+
+  if (paper.storage_path) {
+    await supabase.storage.from(STORAGE_BUCKET).remove([paper.storage_path]);
+  }
+
+  const { error } = await supabase
+    .from("papers")
+    .delete()
+    .eq("id", paperId)
+    .eq("folder_id", folderId);
+
+  if (error) throw new Error("Failed to delete paper.");
+  revalidatePath(`/folders/${folderId}`);
+}
+
+/** Removes a row created for an upload that failed before Storage completed. */
+export async function discardPaperRecord(paperId: string, folderId: string) {
+  const auth = await authorizeFolderRoute(folderId);
+  if (auth.response) throw new Error("Folder not found.");
+
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from("papers")
+    .delete()
+    .eq("id", paperId)
+    .eq("folder_id", folderId)
+    .eq("user_id", auth.user.id);
+
+  if (error) {
+    console.error("Failed to discard paper record:", error.message);
+  }
 }
 
 /**

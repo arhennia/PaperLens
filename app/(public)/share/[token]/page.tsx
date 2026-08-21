@@ -10,9 +10,26 @@ import { StudyTools } from "@/components/folder/study-tools";
 export default async function SharedFolderPage({
   params,
 }: {
-  params: { token: string };
+  params: Promise<{ token: string }>;
 }) {
-  const tokenHash = hashShareToken(params.token);
+  const { token } = await params;
+
+  if (process.env.NODE_ENV === "development" && token === "preview") {
+    return (
+      <div className="mx-auto max-w-3xl px-4 py-12">
+        <p className="text-sm font-medium text-accent">Public Preview</p>
+        <h1 className="mt-2 text-3xl font-bold tracking-tight text-ink">
+          Frontend Share View
+        </h1>
+        <p className="mt-3 text-muted">
+          This development-only share view is available without a Supabase
+          share token.
+        </p>
+      </div>
+    );
+  }
+
+  const tokenHash = hashShareToken(token);
   const supabase = createAdminClient();
 
   // 1. Resolve token

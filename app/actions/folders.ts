@@ -36,7 +36,10 @@ export async function createFolder(formData: FormData) {
     .select("id")
     .single();
 
-  if (error) throw new Error("Failed to create folder.");
+  if (error) {
+    console.error("Failed to create folder:", error.message);
+    throw new Error(`Failed to create folder: ${error.message}`);
+  }
 
   revalidatePath("/");
   redirect(`/folders/${data.id}`);

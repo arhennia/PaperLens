@@ -12,6 +12,7 @@ import { authorizeFolderRoute } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import {
   generateCached,
+  generatePreview,
   fingerprintInput,
   type LlmResult,
 } from "@/lib/llm";
@@ -151,6 +152,48 @@ export async function generateMockPaper(
     system:
       "You are an exam paper designer. Based on the question frequency data provided, generate a realistic mock exam paper. Return valid JSON matching the requested schema.",
     prompt: `Generate a mock exam paper based on these frequently asked questions and their patterns:\n\n${questionSummary}`,
+    jsonSchema: {
+      type: "object",
+      properties: {
+        title: { type: "string" },
+        totalMarks: { type: "number" },
+        questions: {
+          type: "array",
+          items: {
+            type: "object",
+            properties: {
+              text: { type: "string" },
+              marks: { type: "number" },
+              topic: { type: "string" },
+              source: { type: "string" },
+            },
+            required: ["text", "marks", "topic", "source"],
+          },
+        },
+      },
+      required: ["title", "totalMarks", "questions"],
+    },
+  });
+}
+
+/** Development-only AI calls for `/folders/preview`; these do not touch the DB. */
+export async function getPreviewAnswerHint(
+  questionText: string,
+): Promise<LlmResult<{ text: string }>> {
+  return generatePreview<{ text: string }>({
+    system:
+      "You are a concise exam tutor. Give a clear, structured answer to the exam question. Use LaTeX math notation where appropriate and keep it exam-ready.",
+    prompt: questionText,
+  });
+}
+
+export async function generatePreviewMockPaper(
+  questionSummary: string,
+): Promise<LlmResult<MockPaper>> {
+  return generatePreview<MockPaper>({
+    system:
+      "You are an exam paper designer. Return valid JSON for a realistic predicted paper based on the supplied patterns.",
+    prompt: `Generate a mock paper from these patterns:\n\n${questionSummary}`,
     jsonSchema: {
       type: "object",
       properties: {

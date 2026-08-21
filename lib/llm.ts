@@ -45,6 +45,7 @@ const PROMPT_VERSION = 1;
 const RATE_LIMIT_PER_MINUTE = 5;
 
 const ANTHROPIC_MESSAGES_URL = "https://api.anthropic.com/v1/messages";
+const GEMINI_API_URL = "https://generativelanguage.googleapis.com/v1beta/models";
 
 function model(): string {
   return process.env.LLM_MODEL || "claude-sonnet-5";
@@ -73,6 +74,43 @@ export type LlmResult<T> =
   | { status: "rate_limited" }
   | { status: "unavailable"; message: string }
   | { status: "not_configured" };
+
+/**
+ * Generates a response for the development preview without persistence.
+ *
+ * The preview folder has no database row by design, so it cannot use the normal
+ * cached path. This helper is intentionally only used by preview actions; real
+ * folders must use generateCached so budgets and cache invalidation apply.
+ */
+export async function generatePreview<T>({
+  prompt,
+  system,
+  jsonSchema,
+}: {
+  prompt: string;
+  system: string;
+  jsonSchema?: Record<string, unknown>;
+}): Promise<LlmResult<T>> {
+  if (!process.env.LLM_API_KEY) return { status: "not_configured" };
+
+  try {
+    const response = await callAnthropic({ prompt, system, jsonSchema });
+    const text = extractText(response);
+    if (!text) {
+      return { status: "unavailable", message: "The AI returned an empty response." };
+    }
+    return {
+      status: "ok",
+      payload: (jsonSchema ? JSON.parse(text) : { text }) as T,
+      cached: false,
+    };
+  } catch (error) {
+    return {
+      status: "unavailable",
+      message: error instanceof Error ? error.message : "The AI service is unavailable.",
+    };
+  }
+}
 
 /** Hashes the inputs a generation depends on, so a change misses the cache. */
 export function fingerprintInput(parts: unknown): string {
@@ -299,6 +337,10 @@ async function callAnthropic({
   system: string;
   jsonSchema?: Record<string, unknown>;
 }): Promise<AnthropicResponse> {
+  if (model().toLowerCase().startsWith("gemini")) {
+    return callGemini({ prompt, system, jsonSchema });
+  }
+
   const body: Record<string, unknown> = {
     model: model(),
     max_tokens: maxTokens(),
@@ -358,6 +400,70 @@ async function callAnthropic({
   }
 
   throw new LlmUnavailableError("The AI service is unavailable.");
+}
+
+/** Calls Gemini and normalizes its response to the internal provider shape. */
+async function callGemini({
+  prompt,
+  system,
+  jsonSchema,
+}: {
+  prompt: string;
+  system: string;
+  jsonSchema?: Record<string, unknown>;
+}): Promise<AnthropicResponse> {
+  const generationConfig: Record<string, unknown> = {
+    maxOutputTokens: maxTokens(),
+  };
+
+  if (jsonSchema) {
+    generationConfig.responseMimeType = "application/json";
+    generationConfig.responseSchema = jsonSchema;
+  }
+
+  const response = await fetch(
+    `${GEMINI_API_URL}/${encodeURIComponent(model())}:generateContent?key=${encodeURIComponent(process.env.LLM_API_KEY as string)}`,
+    {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        systemInstruction: { parts: [{ text: system }] },
+        contents: [{ role: "user", parts: [{ text: prompt }] }],
+        generationConfig,
+      }),
+      signal: AbortSignal.timeout(60_000),
+      cache: "no-store",
+    },
+  );
+
+  if (!response.ok) {
+    const retryable = response.status === 429 || response.status >= 500;
+    if (retryable) {
+      throw new LlmUnavailableError("The Gemini service is busy. Please try again.");
+    }
+    console.error(`Gemini API returned ${response.status} for feature request.`);
+    throw new LlmUnavailableError("The AI request was rejected. Check the Gemini model and API key.");
+  }
+
+  const body = (await response.json()) as {
+    candidates?: {
+      content?: { parts?: { text?: string }[] };
+      finishReason?: string;
+    }[];
+    usageMetadata?: { promptTokenCount?: number; candidatesTokenCount?: number };
+  };
+  const candidate = body.candidates?.[0];
+  return {
+    content: [{
+      type: "text",
+      text: candidate?.content?.parts?.map((part) => part.text ?? "").join("") ?? "",
+    }],
+    stop_reason: candidate?.finishReason,
+    usage: {
+      input_tokens: body.usageMetadata?.promptTokenCount,
+      output_tokens: body.usageMetadata?.candidatesTokenCount,
+    },
+  };
 }
 
 /** Concatenates the text blocks of a response, ignoring any other block type. */

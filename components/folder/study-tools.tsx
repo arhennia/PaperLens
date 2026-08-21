@@ -23,6 +23,8 @@ import {
   loadChecklistState,
   getAnswerHint,
   generateMockPaper,
+  getPreviewAnswerHint,
+  generatePreviewMockPaper,
   type ChecklistState,
   type MockPaper,
 } from "@/app/actions/study-tools";
@@ -42,9 +44,11 @@ interface StudyGroup {
 export function StudyTools({
   folderId,
   groups,
+  preview = false,
 }: {
   folderId: string;
   groups: StudyGroup[];
+  preview?: boolean;
 }) {
   const [activeTab, setActiveTab] = useState<Tab>("checklist");
 
@@ -79,11 +83,11 @@ export function StudyTools({
       {/* Tab content */}
       <div className="mt-4">
         {activeTab === "checklist" && (
-          <ChecklistTab folderId={folderId} groups={groups} />
+          <ChecklistTab folderId={folderId} groups={groups} preview={preview} />
         )}
-        {activeTab === "flashcards" && <FlashcardTab groups={groups} folderId={folderId} />}
+        {activeTab === "flashcards" && <FlashcardTab groups={groups} folderId={folderId} preview={preview} />}
         {activeTab === "mock" && (
-          <MockPaperTab folderId={folderId} groups={groups} />
+          <MockPaperTab folderId={folderId} groups={groups} preview={preview} />
         )}
       </div>
     </div>
@@ -97,9 +101,11 @@ export function StudyTools({
 function ChecklistTab({
   folderId,
   groups,
+  preview,
 }: {
   folderId: string;
   groups: StudyGroup[];
+  preview: boolean;
 }) {
   const [checked, setChecked] = useState<ChecklistState>({});
   const [loaded, setLoaded] = useState(false);
@@ -107,11 +113,14 @@ function ChecklistTab({
 
   // Load saved state.
   useEffect(() => {
-    loadChecklistState(folderId).then((state) => {
+    const load = preview
+      ? Promise.resolve<ChecklistState>(JSON.parse(localStorage.getItem(`paperlens-preview-checklist`) ?? "{}"))
+      : loadChecklistState(folderId);
+    load.then((state) => {
       setChecked(state);
       setLoaded(true);
     });
-  }, [folderId]);
+  }, [folderId, preview]);
 
   const toggle = useCallback(
     (groupId: string) => {
@@ -119,12 +128,16 @@ function ChecklistTab({
         const next = { ...prev, [groupId]: !prev[groupId] };
         // Save in the background.
         startTransition(() => {
-          saveChecklistState(folderId, next);
+          if (preview) {
+            localStorage.setItem("paperlens-preview-checklist", JSON.stringify(next));
+          } else {
+            saveChecklistState(folderId, next);
+          }
         });
         return next;
       });
     },
-    [folderId, startTransition],
+    [folderId, preview, startTransition],
   );
 
   const checkedCount = Object.values(checked).filter(Boolean).length;
@@ -208,9 +221,11 @@ function ChecklistTab({
 function FlashcardTab({
   groups,
   folderId,
+  preview,
 }: {
   groups: StudyGroup[];
   folderId: string;
+  preview: boolean;
 }) {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isFlipped, setIsFlipped] = useState(false);
@@ -230,11 +245,9 @@ function FlashcardTab({
   async function loadHint() {
     setHintLoading(true);
     try {
-      const result = await getAnswerHint(
-        folderId,
-        current.id,
-        current.canonical_text,
-      );
+      const result = preview
+        ? await getPreviewAnswerHint(current.canonical_text)
+        : await getAnswerHint(folderId, current.id, current.canonical_text);
       if (result.status === "ok") {
         setHint(result.payload.text);
       } else if (result.status === "not_configured") {
@@ -329,9 +342,11 @@ function FlashcardTab({
 function MockPaperTab({
   folderId,
   groups,
+  preview,
 }: {
   folderId: string;
   groups: StudyGroup[];
+  preview: boolean;
 }) {
   const [mockPaper, setMockPaper] = useState<MockPaper | null>(null);
   const [isPending, startTransition] = useTransition();
@@ -350,7 +365,9 @@ function MockPaperTab({
         )
         .join("\n");
 
-      const result = await generateMockPaper(folderId, summary);
+      const result = preview
+        ? await generatePreviewMockPaper(summary)
+        : await generateMockPaper(folderId, summary);
 
       if (result.status === "ok") {
         setMockPaper(result.payload);
@@ -452,6 +469,7 @@ function MockPaperTab({
                   folderId={folderId}
                   groupId={`mock-${idx}`}
                   questionText={q.text}
+                  preview={preview}
                 />
               </div>
             )}
@@ -478,16 +496,20 @@ function AnswerHintInline({
   folderId,
   groupId,
   questionText,
+  preview,
 }: {
   folderId: string;
   groupId: string;
   questionText: string;
+  preview: boolean;
 }) {
   const [hint, setHint] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    getAnswerHint(folderId, groupId, questionText)
+    (preview
+      ? getPreviewAnswerHint(questionText)
+      : getAnswerHint(folderId, groupId, questionText))
       .then((result) => {
         if (result.status === "ok") {
           setHint(result.payload.text);

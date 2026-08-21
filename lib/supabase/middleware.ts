@@ -17,6 +17,10 @@ const PUBLIC_PATHS = ["/login", "/signup", "/auth", "/share"];
  * another user's data, and because policies are enforced by Postgres, it cannot.
  */
 export async function updateSession(request: NextRequest) {
+  if (process.env.NODE_ENV === "development") {
+    return NextResponse.next();
+  }
+
   // Must be built from the incoming request so refreshed auth cookies survive.
   let response = NextResponse.next({ request });
 

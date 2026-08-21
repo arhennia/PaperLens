@@ -5,6 +5,8 @@ connection pool, and a worker creating one per job would leak them.
 """
 
 from functools import lru_cache
+from pathlib import Path
+import sys
 
 from backend.config import (
     STORAGE_BUCKET,
@@ -28,11 +30,24 @@ def get_client():
     require_supabase_config()
 
     try:
+        # The repository also has a top-level `supabase/` migrations directory.
+        # When the worker starts from the project root, that namespace shadows
+        # the installed Python SDK, so import the SDK with the workspace path
+        # temporarily removed.
+        workspace_root = Path(__file__).resolve().parents[2]
+        original_path = sys.path[:]
+        sys.path = [
+            entry
+            for entry in sys.path
+            if Path(entry or ".").resolve() != workspace_root
+        ]
         from supabase import create_client  # noqa: PLC0415 -- lazy, see docstring
     except ImportError as exc:
         raise RuntimeError(
             "The supabase package is not installed. Install backend/requirements.txt."
         ) from exc
+    finally:
+        sys.path = original_path
 
     return create_client(SUPABASE_URL, SUPABASE_SECRET_KEY)
 

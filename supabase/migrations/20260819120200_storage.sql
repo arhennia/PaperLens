@@ -26,6 +26,10 @@ insert into storage.buckets (id, name, public)
 values ('exam-pdfs', 'exam-pdfs', false)
 on conflict (id) do update set public = false;
 
+grant usage on schema storage to authenticated, service_role;
+grant select, insert, update, delete on table storage.objects to authenticated;
+grant all on table storage.objects to service_role;
+
 -- All four operations get a policy. `select` and `insert` alone are not enough:
 -- a Supabase upsert issues an update, and an update with no policy fails in a
 -- way that looks like a silent no-op rather than an error.

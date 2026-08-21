@@ -14,6 +14,30 @@ receives no end-user credentials (D-021).
 """
 
 import os
+from pathlib import Path
+
+
+def _load_local_env() -> None:
+    """Load local env files for the worker without overriding process values."""
+    candidates = (
+        Path(__file__).resolve().parent / ".env",
+        Path(__file__).resolve().parent.parent / ".env.local",
+    )
+    for path in candidates:
+        if not path.exists():
+            continue
+        for raw_line in path.read_text(encoding="utf-8").splitlines():
+            line = raw_line.strip()
+            if not line or line.startswith("#") or "=" not in line:
+                continue
+            name, value = line.split("=", 1)
+            name = name.strip()
+            value = value.strip().strip('"').strip("'")
+            if name and name not in os.environ:
+                os.environ[name] = value
+
+
+_load_local_env()
 
 
 def _env(name: str, default: str = "") -> str:
