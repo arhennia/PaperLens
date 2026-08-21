@@ -1,0 +1,347 @@
+<!DOCTYPE html><html class="light" lang="en" style=""><head>
+<meta charset="utf-8">
+<meta content="width=device-width, initial-scale=1.0" name="viewport">
+<title>PaperLens - DBMS Analysis</title>
+<!-- Material Symbols -->
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<!-- Google Fonts -->
+<link href="https://fonts.googleapis.com" rel="preconnect">
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect">
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet">
+<!-- Tailwind CSS -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<!-- Tailwind Configuration -->
+<script id="tailwind-config">
+  tailwind.config = {
+    darkMode: "class",
+    theme: {
+      extend: {
+        "colors": {
+                "inverse-primary": "#aec6ff",
+                "on-secondary-fixed-variant": "#802a00",
+                "background": "#fbf9f9",
+                "surface-dim": "#dbdad9",
+                "primary-fixed-dim": "#aec6ff",
+                "surface-tint": "#004da9",
+                "error-container": "#ffdad6",
+                "surface-container": "#efeded",
+                "surface": "#fbf9f9",
+                "secondary-fixed-dim": "#ffb599",
+                "surface-bright": "#fbf9f9",
+                "surface-container-highest": "#e3e2e2",
+                "on-primary-fixed": "#001a42",
+                "on-surface": "#1b1c1c",
+                "surface-container-high": "#e9e8e7",
+                "tertiary-container": "#005681",
+                "on-tertiary-fixed-variant": "#004b71",
+                "tertiary-fixed-dim": "#8fcdff",
+                "primary-container": "#004da9",
+                "error": "#ba1a1a",
+                "surface-container-low": "#f5f3f3",
+                "on-secondary": "#ffffff",
+                "on-primary": "#ffffff",
+                "surface-container-lowest": "#ffffff",
+                "inverse-on-surface": "#f2f0f0",
+                "primary-fixed": "#d8e2ff",
+                "on-tertiary-container": "#89cbff",
+                "surface-variant": "#e3e2e2",
+                "on-secondary-fixed": "#370e00",
+                "secondary-container": "#fd6b2a",
+                "outline": "#737783",
+                "inverse-surface": "#303031",
+                "on-primary-container": "#aac3ff",
+                "secondary": "#a73a00",
+                "primary": "#00377d",
+                "on-surface-variant": "#424752",
+                "on-error-container": "#93000a",
+                "on-secondary-container": "#5b1c00",
+                "tertiary-fixed": "#cbe6ff",
+                "on-primary-fixed-variant": "#004395",
+                "tertiary": "#003e5e",
+                "on-tertiary": "#ffffff",
+                "secondary-fixed": "#ffdbce",
+                "on-error": "#ffffff",
+                "on-tertiary-fixed": "#001e30",
+                "outline-variant": "#c3c6d4",
+                "on-background": "#1b1c1c"
+        },
+        "borderRadius": {
+                "DEFAULT": "0.25rem",
+                "lg": "0.5rem",
+                "xl": "0.75rem",
+                "full": "9999px",
+                "ROUND_EIGHT": "0.5rem"
+        },
+        "spacing": {
+                "xs": "4px",
+                "sm": "12px",
+                "gutter": "24px",
+                "md": "24px",
+                "margin-desktop": "64px",
+                "base": "8px",
+                "lg": "48px",
+                "xl": "80px",
+                "margin-mobile": "16px",
+                "container-max": "1200px"
+        },
+        "fontFamily": {
+                "body-md": [
+                        "Montserrat"
+                ],
+                "label-sm": [
+                        "Montserrat"
+                ],
+                "headline-lg": [
+                        "Montserrat"
+                ],
+                "headline-lg-mobile": [
+                        "Montserrat"
+                ],
+                "headline-md": [
+                        "Montserrat"
+                ],
+                "body-lg": [
+                        "Montserrat"
+                ],
+                "label-bold": [
+                        "Montserrat"
+                ],
+                "display-lg": [
+                        "Montserrat"
+                ],
+                "headline-sm": [
+                        "Montserrat"
+                ],
+                "label-md": [
+                        "Montserrat"
+                ]
+        },
+        "fontSize": {
+                "body-md": [
+                        "16px",
+                        {
+                                "lineHeight": "24px",
+                                "fontWeight": "400"
+                        }
+                ],
+                "label-sm": [
+                        "12px",
+                        {
+                                "lineHeight": "16px",
+                                "fontWeight": "500"
+                        }
+                ],
+                "headline-lg": [
+                        "32px",
+                        {
+                                "lineHeight": "40px",
+                                "fontWeight": "700"
+                        }
+                ],
+                "headline-lg-mobile": [
+                        "24px",
+                        {
+                                "lineHeight": "32px",
+                                "fontWeight": "700"
+                        }
+                ],
+                "headline-md": [
+                        "24px",
+                        {
+                                "lineHeight": "32px",
+                                "fontWeight": "600"
+                        }
+                ],
+                "body-lg": [
+                        "18px",
+                        {
+                                "lineHeight": "28px",
+                                "fontWeight": "400"
+                        }
+                ],
+                "label-bold": [
+                        "14px",
+                        {
+                                "lineHeight": "20px",
+                                "fontWeight": "700"
+                        }
+                ],
+                "display-lg": [
+                        "56px",
+                        {
+                                "lineHeight": "64px",
+                                "letterSpacing": "-0.02em",
+                                "fontWeight": "800"
+                        }
+                ],
+                "headline-sm": [
+                        "18px",
+                        {
+                                "lineHeight": "1.4",
+                                "fontWeight": "600"
+                        }
+                ],
+                "label-md": [
+                        "12px",
+                        {
+                                "lineHeight": "16px",
+                                "letterSpacing": "0.05em",
+                                "fontWeight": "600"
+                        }
+                ]
+        }
+},
+    },
+  }
+</script>
+<style>
+        body {
+            background-color: #fbf9f9;
+        }
+        
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #fbf9f9;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #c3c6d4;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #737783;
+        }
+
+        /* Light Theme Cards */
+        .util-card {
+            background-color: #ffffff;
+            border: 1px solid #e3e2e2;
+        }
+    </style>
+</head>
+<body class="text-on-surface font-body-md antialiased overflow-x-hidden min-h-screen flex">
+<!-- JSON Component: SideNavBar -->
+<!-- Main Content Wrapper -->
+<div class="flex-1 flex flex-col min-h-screen"><aside class="fixed left-0 top-16 bottom-0 w-16 bg-surface border-r border-outline-variant flex flex-col items-center py-md gap-lg z-40">
+<button class="text-on-surface-variant hover:text-primary transition-colors">
+<span class="material-symbols-outlined">home</span>
+</button>
+<button class="hover:text-primary transition-colors text-primary p-1 rounded-lg border-l-4 border-primary">
+<span class="material-symbols-outlined">description</span>
+</button>
+<button class="text-on-surface-variant hover:text-primary transition-colors">
+<span class="material-symbols-outlined">search</span>
+</button>
+<button class="text-on-surface-variant hover:text-primary transition-colors">
+<span class="material-symbols-outlined">check_box</span>
+</button>
+<button class="text-on-surface-variant hover:text-primary transition-colors">
+<span class="material-symbols-outlined">edit</span>
+</button>
+</aside>
+<!-- JSON Component: TopAppBar -->
+<header class="bg-surface flex justify-between items-center w-full h-16 px-md sticky top-0 z-40 border-b border-outline-variant">
+<!-- Left Side: Breadcrumbs / Brand -->
+<div class="flex items-center gap-sm">
+<!-- Applied invert class or using text version if image is not transparent black, here assuming we use a standard dark logo or just filter -->
+<img alt="PaperLens Logo" class="h-8 w-auto object-contain invert brightness-0" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDHmfnsklft5NPL2VOLEsXxfvA3S14yjsY2PKKkbVSvCG1rwYhpHrmjmqBjyeCORGpPpXK-0ZlFGbN70QYrB_3V-ylsFlKjDvcLKBTmACnboP8kTKLxYNu1ZeSOMhS9kWYF0MFfb4R8wdd5czM54aMNGyg2WoiSRT6_AfMNKu55lbw-TntLpIFd9DMzbGD1Xo3Xf_mvDb_voD5i7c5EtDm1MlgxCrGTBWmj1kWxvpFNtbnTsLBmyqH5SiDuDK5wVLWzuxE">
+<nav class="hidden md:flex items-center gap-base">
+<!-- Nav links derived from JSON -->
+</nav>
+</div>
+<!-- Right Side: Search, Action, Profile -->
+<div class="flex items-center gap-md">
+<!-- Search Bar (on_left context relative to trailing actions) -->
+<!-- Trailing Primary Action -->
+<button class="bg-[#12AFFF] hover:bg-[#0f95da] text-white font-label-md text-label-md py-base px-sm rounded-DEFAULT transition-all duration-200 shadow-none border-none">
+                    Share Workspace
+                </button>
+<!-- Profile Image -->
+<button class="w-8 h-8 rounded-full overflow-hidden border border-outline-variant focus:outline-none focus:ring-2 focus:ring-primary-container shrink-0">
+<img alt="User Avatar" class="w-full h-full object-cover" data-alt="A highly detailed 50-100 word prompt describing a minimalist, flat-design user avatar placeholder. The avatar should feature a generic, abstract silhouette of a person against a subtle, dark tech-inspired background pattern. The aesthetic should be clean, utilitarian, and high-contrast, fitting perfectly into a dark navy academic dashboard theme." src="https://lh3.googleusercontent.com/aida-public/AB6AXuByGcnZvnwWj3p7Q3RJrzJa5l24aPrZUXpeyXz3MokwxrdFJdiArN8IxGtsBNhpVtCMUhJaNtM7zj7orQdvWUOcKsQmGapjXllP89q32ytBtRfeOuq181sJzX2QOukzYjSfMcGuI98MYzm7m2RHPIApczjOEFEu9ovEFQ4oonYRQCAGbi7a3JukZJ6ZASvZk1CD81KlcrGs3t74TLO6PkQNC4Go2xetNz6VSxrWERKpM_pBFmtmZtYmQQ">
+</button>
+</div>
+</header>
+<!-- Main Dashboard Content -->
+<main class="flex-1 p-sm max-w-container-max w-full mt-md ml-16">
+<!-- Page Header Replacement based on ref image -->
+<div class="mb-lg flex flex-col gap-md">
+<div class="flex items-start gap-sm">
+<div class="flex flex-col gap-sm">
+<div class="flex items-center gap-2">
+<h1 class="text-headline-lg font-bold text-on-surface tracking-tight">Mid-Sem 2023</h1>
+<button class="text-on-surface-variant hover:text-primary transition-colors p-1">
+<span class="material-symbols-outlined text-xl">edit</span>
+</button>
+</div>
+<div class="flex flex-col gap-2">
+<button class="flex items-center justify-between bg-surface-container border border-outline-variant rounded-DEFAULT py-2 px-3 w-64 hover:bg-surface-container-high transition-colors text-on-surface">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-error text-xl">folder</span>
+<span class="font-body-md">DBMS</span>
+</div>
+<span class="material-symbols-outlined text-on-surface-variant text-xl">expand_more</span>
+</button>
+</div>
+</div>
+</div>
+<div class="">
+<button class="flex items-center gap-2 bg-primary hover:bg-primary-container text-on-primary font-bold text-lg py-3 px-6 rounded-full transition-all duration-200 shadow-md">
+<span class="material-symbols-outlined text-2xl">play_circle</span>
+            Start studying
+        </button>
+</div>
+<!-- Navigation Tabs -->
+<div class="flex gap-lg border-b border-outline-variant mt-md">
+<button class="flex items-center gap-1 pb-3 border-b-2 border-primary text-primary font-headline-sm">
+            1 Material
+            <span class="material-symbols-outlined text-lg">info</span>
+</button>
+<button class="flex items-center gap-2 pb-3 text-on-surface-variant hover:text-on-surface transition-colors font-headline-sm">
+            0 Images
+            <span class="bg-secondary-container text-on-secondary text-[10px] font-bold px-2 py-0.5 rounded-full">BETA</span>
+</button>
+</div>
+<!-- Materials Section -->
+<div class="flex flex-col gap-sm">
+<div>
+<button class="flex items-center gap-2 border border-outline-variant text-on-surface hover:bg-surface-container-low transition-colors py-1.5 px-4 rounded-full font-label-md">
+<span class="material-symbols-outlined text-lg">add</span>
+                Add
+            </button>
+</div>
+<div class="flex flex-col items-start gap-md mt-2 w-full">
+<div class="flex items-center justify-between bg-surface-container-low border border-outline-variant rounded-lg p-3 flex-1 max-w-2xl group hover:bg-surface-container transition-colors w-full">
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined text-on-surface-variant text-3xl">picture_as_pdf</span>
+<span class="font-body-md text-on-surface">SQL-4.pdf</span>
+</div>
+<button class="text-on-surface-variant hover:text-error transition-colors">
+<span class="material-symbols-outlined">cancel</span>
+</button>
+</div>
+
+<div class="flex items-center justify-between bg-surface-container-low border border-outline-variant rounded-lg p-3 flex-1 max-w-2xl group hover:bg-surface-container transition-colors w-full"><div class="flex items-center gap-3"><span class="material-symbols-outlined text-on-surface-variant text-3xl">picture_as_pdf</span><span class="font-body-md text-on-surface">Normalization-Guide.pdf</span></div><button class="text-on-surface-variant hover:text-error transition-colors"><span class="material-symbols-outlined">cancel</span></button></div><div class="flex items-center justify-between bg-surface-container-low border border-outline-variant rounded-lg p-3 flex-1 max-w-2xl group hover:bg-surface-container transition-colors w-full"><div class="flex items-center gap-3"><span class="material-symbols-outlined text-on-surface-variant text-3xl">picture_as_pdf</span><span class="font-body-md text-on-surface">Indexing-Strategies.pdf</span></div><button class="text-on-surface-variant hover:text-error transition-colors"><span class="material-symbols-outlined">cancel</span></button></div><div class="flex items-center justify-between bg-surface-container-low border border-outline-variant rounded-lg p-3 flex-1 max-w-2xl group hover:bg-surface-container transition-colors w-full"><div class="flex items-center gap-3"><span class="material-symbols-outlined text-on-surface-variant text-3xl">picture_as_pdf</span><span class="font-body-md text-on-surface">Query-Optimization.pdf</span></div><button class="text-on-surface-variant hover:text-error transition-colors"><span class="material-symbols-outlined">cancel</span></button></div></div>
+</div>
+</div>
+<!-- Bento Grid / Cards Container -->
+<!-- OS Section Heading -->
+<div class="mb-lg flex mt-xl">
+<div class="flex flex-col gap-md w-full">
+<div class="mt-sm">
+</div>
+</div>
+</div>
+<!-- OS Bento Grid -->
+</main>
+</div>
+
+
+
+
+
+
+</body></html>
