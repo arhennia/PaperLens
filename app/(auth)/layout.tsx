@@ -1,25 +1,17 @@
-import { redirect } from "next/navigation";
-
-import { getUser } from "@/lib/supabase/server";
-
 /**
  * Auth layout shell.
- *
- * Centred, brandless container for login and signup pages. If the user is
- * already signed in, they are redirected to the dashboard — there is no reason
- * to show a login form to a logged-in user.
+ * Soft pastel lavender background matching the cute auth design.
  */
-export default async function AuthLayout({
+export default function AuthLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  const user = await getUser();
-  if (user) redirect("/");
-
   return (
-    <div className="flex min-h-screen items-center justify-center bg-canvas px-4">
-      <div className="w-full max-w-md">{children}</div>
+    <div className="flex min-h-screen items-center justify-center bg-[#EBF0F8] p-4 sm:p-6 md:p-10">
+      <div className="w-full max-w-4xl flex items-center justify-center">
+        {children}
+      </div>
     </div>
   );
 }
