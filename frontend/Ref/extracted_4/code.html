@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>PaperLens - Practice Planner</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "primary-fixed-dim": "#b4c5ff",
+                        "surface-container-high": "#e2e9f2",
+                        "secondary-fixed": "#dae2fd",
+                        "on-secondary": "#ffffff",
+                        "on-tertiary": "#ffffff",
+                        "primary-fixed": "#dbe1ff",
+                        "surface": "#f6f9ff",
+                        "secondary": "#565e74",
+                        "surface-dim": "#d4dbe3",
+                        "surface-container-low": "#edf4fd",
+                        "tertiary-fixed-dim": "#ffb599",
+                        "on-secondary-fixed-variant": "#3f465c",
+                        "error-container": "#ffdad6",
+                        "on-secondary-fixed": "#131b2e",
+                        "outline-variant": "#c3c6d7",
+                        "inverse-surface": "#2a3138",
+                        "error": "#ba1a1a",
+                        "on-primary-fixed-variant": "#003ea8",
+                        "surface-variant": "#dce3ec",
+                        "background": "#f6f9ff",
+                        "surface-tint": "#0053db",
+                        "tertiary-fixed": "#ffdbce",
+                        "outline": "#737686",
+                        "on-error": "#ffffff",
+                        "tertiary": "#973400",
+                        "on-surface-variant": "#434655",
+                        "surface-bright": "#f6f9ff",
+                        "surface-container-highest": "#dce3ec",
+                        "on-secondary-container": "#5c647a",
+                        "on-tertiary-fixed-variant": "#7f2b00",
+                        "surface-container": "#e7eff7",
+                        "primary-container": "#2563eb",
+                        "on-primary-container": "#eeefff",
+                        "inverse-on-surface": "#eaf1fa",
+                        "secondary-fixed-dim": "#bec6e0",
+                        "tertiary-container": "#c04400",
+                        "surface-container-lowest": "#ffffff",
+                        "on-primary": "#ffffff",
+                        "on-background": "#151c23",
+                        "on-tertiary-fixed": "#370e00",
+                        "on-tertiary-container": "#ffede7",
+                        "secondary-container": "#dae2fd",
+                        "on-surface": "#151c23",
+                        "primary": "#004ac6",
+                        "on-error-container": "#93000a",
+                        "on-primary-fixed": "#00174b",
+                        "inverse-primary": "#b4c5ff"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                    "spacing": {
+                        "margin-mobile": "16px",
+                        "gutter": "16px",
+                        "space-md": "16px",
+                        "space-sm": "8px",
+                        "space-lg": "24px",
+                        "space-xl": "32px",
+                        "margin-desktop": "32px",
+                        "space-xs": "4px"
+                    },
+                    "fontFamily": {
+                        "headline-md": ["Montserrat"],
+                        "title-lg": ["Montserrat"],
+                        "body-md": ["Montserrat"],
+                        "display-lg": ["Montserrat"],
+                        "title-md": ["Montserrat"],
+                        "label-lg": ["Montserrat"],
+                        "label-md": ["Montserrat"],
+                        "headline-lg-mobile": ["Montserrat"],
+                        "body-lg": ["Montserrat"],
+                        "headline-lg": ["Montserrat"]
+                    },
+                    "fontSize": {
+                        "headline-md": ["20px", { "lineHeight": "28px", "fontWeight": "600" }],
+                        "title-lg": ["18px", { "lineHeight": "24px", "fontWeight": "600" }],
+                        "body-md": ["14px", { "lineHeight": "20px", "fontWeight": "400" }],
+                        "display-lg": ["32px", { "lineHeight": "40px", "letterSpacing": "-0.02em", "fontWeight": "700" }],
+                        "title-md": ["16px", { "lineHeight": "24px", "fontWeight": "600" }],
+                        "label-lg": ["12px", { "lineHeight": "16px", "letterSpacing": "0.05em", "fontWeight": "600" }],
+                        "label-md": ["11px", { "lineHeight": "14px", "fontWeight": "500" }],
+                        "headline-lg-mobile": ["20px", { "lineHeight": "28px", "fontWeight": "600" }],
+                        "body-lg": ["16px", { "lineHeight": "24px", "fontWeight": "400" }],
+                        "headline-lg": ["24px", { "lineHeight": "32px", "letterSpacing": "-0.01em", "fontWeight": "600" }]
+                    }
+                }
+            }
+        }
+    </script>
+<style>
+        body { font-family: 'Montserrat', sans-serif; background-color: #f6f9ff; }
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .material-symbols-outlined.filled {
+            font-variation-settings: 'FILL' 1;
+        }
+        
+        /* Custom scrollbar for high-density tables/lists if needed */
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #d4dbe3; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #737686; }
+    </style>
+</head>
+<body class="bg-surface flex min-h-screen antialiased text-on-surface selection:bg-primary-container selection:text-on-primary-container">
+<!-- SideNavBar -->
+<nav class="hidden md:flex flex-col items-center space-y-space-lg w-16 h-screen sticky top-0 bg-surface border-r border-outline-variant pt-4 z-40 shrink-0">
+<a class="mb-4" href="#">
+<img alt="PaperLens Logo" class="w-8 h-8 object-contain" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAxJcnOqouPgUHHoriZ6OUWsqNeVcJPaa0o34yMQlRDegAmxA3C3GAONRGtPxi75RiY_JiSQbhiR7R-eQKXtJRApoVayKC4mVMmGjtbjbSrcRn2Fb-yHzHe6f8URAiUoD7uv2y16oGYYkHUzzDVsvcECFbM2mBKCjTaMEyQ669z9WwjvQmt0F2juMwhdkMNoKMYc1F4WlB5GpZ4KTAC_XA_HqtLa4p_F17yYBif1GsRPIhmm4YElnRNqGj52ChxhYbXscA"/>
+</a>
+<a class="flex flex-col items-center justify-center w-12 h-12 rounded-lg text-on-secondary-container hover:bg-surface-container-high transition-all group" href="#" title="Home">
+<span class="material-symbols-outlined group-hover:scale-110 transition-transform">home</span>
+</a>
+<a class="flex flex-col items-center justify-center w-12 h-12 rounded-lg text-on-secondary-container hover:bg-surface-container-high transition-all group" href="#" title="Papers">
+<span class="material-symbols-outlined group-hover:scale-110 transition-transform">description</span>
+</a>
+<a class="flex flex-col items-center justify-center w-12 h-12 rounded-lg text-on-secondary-container hover:bg-surface-container-high transition-all group" href="#" title="Search">
+<span class="material-symbols-outlined group-hover:scale-110 transition-transform">search</span>
+</a>
+<a class="flex flex-col items-center justify-center w-12 h-12 rounded-lg text-on-secondary-container hover:bg-surface-container-high transition-all group" href="#" title="Tasks">
+<span class="material-symbols-outlined group-hover:scale-110 transition-transform">check_box</span>
+</a>
+<a class="flex flex-col items-center justify-center w-12 h-12 rounded-lg text-primary border-l-4 border-primary bg-primary-container/10 transition-all scale-95" href="#" title="Practice">
+<span class="material-symbols-outlined filled">edit</span>
+</a>
+</nav>
+<!-- Main Content Wrapper -->
+<div class="flex-1 flex flex-col min-h-screen overflow-hidden">
+<!-- TopNavBar -->
+<header class="bg-surface-container-lowest border-b border-outline-variant sticky top-0 z-30 shrink-0">
+<div class="flex justify-between items-center px-margin-desktop h-16 w-full">
+<div class="flex items-center gap-4">
+<img alt="PaperLens" class="h-8 object-contain hidden md:block" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAex7dgJXZi2Rd2si6YDLio4MUaVZRk__Z7cmhPXeXD9vI4XbdpCWqFF-9jPKPWcd8OTE7dCVNOm5O4w4swbbIknvrid--xF2jATtSgye2cK6EcyyDwFLg0ywh47BkmaND-0Oq2lhAM8uIv2WPiCMMUMXJg9gMu_f0q0VwXrUqixz8QHiWPMvqCUVGKpYEfeTFgyJKs4kXD7GNzl8zwqvCoEE2uXgX6sirbtmtojKUaM5nkpNXfprI5zyEkfGUeKP2vksc"/>
+<span class="font-headline-md text-headline-md font-bold text-on-surface md:hidden">PaperLens</span>
+</div>
+<div class="flex items-center gap-space-md">
+<button class="font-title-md text-title-md text-primary font-bold hover:bg-surface-container-low px-4 py-2 rounded-lg transition-colors flex items-center gap-2">
+<span class="material-symbols-outlined">download</span> Export
+                    </button>
+<div class="w-8 h-8 rounded-full bg-surface-container-high border border-outline-variant flex items-center justify-center overflow-hidden cursor-pointer hover:ring-2 ring-primary transition-all">
+<img alt="User profile" class="w-full h-full object-cover" data-alt="A clean, minimalist abstract avatar featuring a subtle geometric pattern in soft blue and grey tones, conveying a professional academic aesthetic." src="https://lh3.googleusercontent.com/aida-public/AB6AXuB4twH9ToWQFfY1xDcW1E21MDCTA78rdWNo80QoLbUmQneiO1ifl4X5Gq03fmG_iftZ9LWCFEZyBrUojLp9Px6rJ-ddLZsDqxEIA9j6I9pmZd-pYzfvDf1CYMeJOoN6kWKN6pExlUHCDb0m-4w4qdTW3JeWu6L3yoFxyvhKprqJ1fQlKPrLrLHgsBATP4ZphA39VOvY1I9KQBw5m_QeUpduJWFWDn_tMHLqR1as0CgbMo1ToiSUhdh_PA"/>
+</div>
+</div>
+</div>
+</header>
+<!-- Page Canvas -->
+<main class="flex-1 overflow-y-auto p-margin-mobile md:p-margin-desktop"><div class="max-w-7xl mx-auto space-y-space-xl"><div class="flex flex-col md:flex-row md:items-end justify-between gap-space-lg"><div class="space-y-space-xs"><h1 class="font-display-lg text-display-lg text-[#0F172A]">AI Predicted Mock Paper Generator</h1><p class="font-body-lg text-body-lg text-on-surface-variant">Based on 5 historical DBMS past papers (2019-2024) using frequency &amp; recency algorithms</p></div><div class="flex flex-wrap items-center gap-space-sm"><button class="h-10 px-4 rounded bg-[#EA580C] text-white font-title-md text-title-md hover:opacity-90 transition-colors flex items-center gap-2 shadow-sm"><span class="material-symbols-outlined text-[20px]">auto_mode</span> Generate New Paper</button><button class="h-10 px-4 rounded border border-[#2563EB] text-[#2563EB] font-title-md text-title-md hover:bg-[#EFF6FF] transition-colors flex items-center gap-2 bg-transparent"><span class="material-symbols-outlined text-[20px]">picture_as_pdf</span> Export Printable PDF</button></div></div><div class="grid grid-cols-1 lg:grid-cols-12 gap-gutter items-start"><div class="lg:col-span-8 space-y-space-lg"><div class="bg-white border border-outline-variant rounded-lg shadow-sm p-space-lg"><div class="text-center border-b border-outline-variant pb-6 mb-6"><h2 class="font-headline-md text-headline-md text-[#0F172A] mb-2">DATABASE MANAGEMENT SYSTEMS (CS302)</h2><div class="flex justify-center gap-space-lg font-label-lg text-label-lg text-on-surface-variant uppercase"><span>Time Allowed: 3 Hours</span><span>Total Marks: 100</span></div></div><div class="space-y-8"><section><div><h3 class="font-title-lg text-title-lg text-[#0F172A] border-b border-outline-variant/30 pb-2 mb-4">SECTION A: SHORT QUESTIONS</h3><div class="space-y-6"><div class="relative"><div class="flex justify-between items-start mb-2"><p class="font-body-lg text-[#0F172A] flex-1">1. Explain the concept of ACID properties in transaction management with suitable examples.</p><div class="flex flex-col items-end gap-1 shrink-0 ml-4"><span class="font-label-md text-label-md text-on-surface-variant">[ 4 Marks ]</span><span class="bg-[#EA580C]/10 text-[#EA580C] px-2 py-0.5 rounded font-label-md text-label-md border border-[#EA580C]/20">[ 88% Prediction Score ]</span></div></div><button class="text-[#2563EB] font-label-lg text-label-lg hover:underline">[ AI Predicted Solution &amp; Answer Key ▾ ]</button></div><div class="relative"><div class="flex justify-between items-start mb-2"><p class="font-body-lg text-[#0F172A] flex-1">2. Differentiate between Physical and Logical Data Independence.</p><div class="flex flex-col items-end gap-1 shrink-0 ml-4"><span class="font-label-md text-label-md text-on-surface-variant">[ 4 Marks ]</span><span class="bg-[#EA580C]/10 text-[#EA580C] px-2 py-0.5 rounded font-label-md text-label-md border border-[#EA580C]/20">[ 82% Prediction Score ]</span></div></div><button class="text-[#2563EB] font-label-lg text-label-lg hover:underline">[ AI Predicted Solution &amp; Answer Key ▾ ]</button></div><div class="relative"><div class="flex justify-between items-start mb-2"><p class="font-body-lg text-[#0F172A] flex-1">3. What are the primary advantages of using a B+ Tree over a standard B-Tree for indexing?</p><div class="flex flex-col items-end gap-1 shrink-0 ml-4"><span class="font-label-md text-label-md text-on-surface-variant">[ 4 Marks ]</span><span class="bg-[#EA580C]/10 text-[#EA580C] px-2 py-0.5 rounded font-label-md text-label-md border border-[#EA580C]/20">[ 91% Prediction Score ]</span></div></div><button class="text-[#2563EB] font-label-lg text-label-lg hover:underline">[ AI Predicted Solution &amp; Answer Key ▾ ]</button></div></div></div></section><section><h3 class="font-title-lg text-title-lg text-[#0F172A] border-b border-outline-variant/30 pb-2 mb-4">SECTION B: LONG ANALYTICAL</h3><div class="space-y-8"><div class="relative"><div class="flex justify-between items-start mb-2"><div class="flex-1"><p class="font-body-lg text-[#0F172A] font-bold mb-2">4. B-Tree Indexing Analysis</p><p class="font-body-lg text-[#0F172A]">Construct a B-Tree of order 5 by inserting the following keys: 10, 20, 30, 40, 50, 60, 70, 80. Show the tree structure after each split.</p></div><div class="flex flex-col items-end gap-1 shrink-0 ml-4"><span class="font-label-md text-label-md text-on-surface-variant">[ 10 Marks ]</span><span class="bg-[#2563EB]/10 text-[#2563EB] px-2 py-0.5 rounded font-label-md text-label-md border border-[#2563EB]/20">[ High Recency Trend ]</span></div></div><button class="text-[#2563EB] font-label-lg text-label-lg hover:underline">[ AI Step-by-Step Working ▾ ]</button></div><div class="relative"><div class="flex justify-between items-start mb-2"><div class="flex-1"><p class="font-body-lg text-[#0F172A] font-bold mb-2">5. Normalization &amp; Decomposition</p><p class="font-body-lg text-[#0F172A]">Given the relation R(A, B, C, D, E) and FDs: A-&gt;BC, CD-&gt;E, B-&gt;D, E-&gt;A. Identify the candidate keys and decompose the relation into BCNF.</p></div><div class="flex flex-col items-end gap-1 shrink-0 ml-4"><span class="font-label-md text-label-md text-on-surface-variant">[ 10 Marks ]</span><span class="bg-[#2563EB]/10 text-[#2563EB] px-2 py-0.5 rounded font-label-md text-label-md border border-[#2563EB]/20">[ High Recency Trend ]</span></div></div><button class="text-[#2563EB] font-label-lg text-label-lg hover:underline">[ AI Step-by-Step Working ▾ ]</button></div></div></section></div></div></div><div class="lg:col-span-4 space-y-space-lg"><div class="bg-white border border-outline-variant rounded-lg p-space-lg shadow-sm flex flex-col items-center"><h3 class="font-title-md text-title-md text-[#0F172A] mb-4 w-full">85% Historical Accuracy</h3><div class="relative w-32 h-32 flex items-center justify-center"><svg class="w-full h-full -rotate-90" viewbox="0 0 36 36"><path class="text-surface-variant" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="currentColor" stroke-width="3"></path><path class="text-[#2563EB]" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831" fill="none" stroke="currentColor" stroke-dasharray="85, 100" stroke-width="3"></path></svg><span class="absolute font-display-lg text-display-lg text-[#0F172A] text-xl">85%</span></div></div><div class="bg-white border border-outline-variant rounded-lg p-space-lg shadow-sm"><h3 class="font-title-md text-title-md text-[#0F172A] mb-4">Algorithm Parameters</h3><div class="space-y-4"><div class="flex flex-wrap gap-2"><span class="px-3 py-1 rounded-full bg-surface-variant text-on-surface-variant font-label-lg text-label-lg">Easy</span><span class="px-3 py-1 rounded-full bg-[#EFF6FF] text-[#2563EB] border border-[#2563EB]/30 font-label-lg text-label-lg">Balanced</span><span class="px-3 py-1 rounded-full bg-surface-variant text-on-surface-variant font-label-lg text-label-lg">Hard</span></div><div class="flex items-center justify-between"><span class="font-body-md text-body-md text-on-surface">Recency Weighting</span><div class="w-10 h-5 bg-[#2563EB] rounded-full relative cursor-pointer"><div class="absolute right-1 top-1 w-3 h-3 bg-white rounded-full"></div></div></div><div class="flex items-center justify-between"><span class="font-body-md text-body-md text-on-surface">Numerical Variations</span><div class="w-10 h-5 bg-[#2563EB] rounded-full relative cursor-pointer"><div class="absolute right-1 top-1 w-3 h-3 bg-white rounded-full"></div></div></div></div></div><div class="bg-white border border-outline-variant rounded-lg p-space-lg shadow-sm"><h3 class="font-title-md text-title-md text-[#0F172A] mb-4">Predicted Mark Distribution</h3><div class="space-y-3"><div class="space-y-1"><div class="flex justify-between font-label-md text-label-md text-on-surface-variant"><span>B-Tree &amp; Indexing</span><span>35%</span></div><div class="h-1.5 w-full bg-surface-variant rounded-full"><div class="h-full bg-[#EA580C] rounded-full" style="width: 35%;"></div></div></div><div class="space-y-1"><div class="flex justify-between font-label-md text-label-md text-on-surface-variant"><span>Normalization</span><span>25%</span></div><div class="h-1.5 w-full bg-surface-variant rounded-full"><div class="h-full bg-[#2563EB] rounded-full" style="width: 25%;"></div></div></div><div class="space-y-1"><div class="flex justify-between font-label-md text-label-md text-on-surface-variant"><span>SQL Queries</span><span>20%</span></div><div class="h-1.5 w-full bg-surface-variant rounded-full"><div class="h-full bg-[#2563EB] rounded-full" style="width: 20%;"></div></div></div><div class="space-y-1"><div class="flex justify-between font-label-md text-label-md text-on-surface-variant"><span>Others</span><span>20%</span></div><div class="h-1.5 w-full bg-surface-variant rounded-full"><div class="h-full bg-outline-variant rounded-full" style="width: 20%;"></div></div></div></div></div></div></div></div></main>
+</div>
+</body></html>
