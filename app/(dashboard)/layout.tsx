@@ -1,18 +1,14 @@
-import Link from "next/link";
+import { Suspense } from "react";
 import { redirect } from "next/navigation";
-
 import { createClient, getUser } from "@/lib/supabase/server";
+import { AppHeader } from "@/components/layout/app-header";
+import { SideNav } from "@/components/layout/side-nav";
 
 /**
  * Dashboard layout shell.
  *
- * Provides a sidebar with the folder list and a sign-out button. Every page
- * inside `(dashboard)/` inherits this shell, so the sidebar persists across
- * navigation.
- *
- * Auth check: `getUser()` validates the session server-side. If the user is not
- * signed in, they are redirected to `/login`. This is convenience, not
- * enforcement — RLS is the authoritative layer.
+ * Provides a unified top AppHeader (with PaperLens branding logo) and responsive
+ * SideNav navigation rail. Every page inside `(dashboard)/` inherits this shell.
  */
 export default async function DashboardLayout({
   children,
@@ -22,97 +18,60 @@ export default async function DashboardLayout({
   const user = await getUser();
   if (!user) redirect("/login");
 
-  const supabase = await createClient();
-  const { data: folders } = await supabase
-    .from("folders")
-    .select("id, name, subject")
-    .order("created_at", { ascending: false });
+  let folders: { id: string; name: string; subject: string | null }[] = [];
+  let displayName = "Alex Chen";
+
+  try {
+    const supabase = await createClient();
+    const { data: dbFolders } = await supabase
+      .from("folders")
+      .select("id, name, subject")
+      .order("created_at", { ascending: false });
+
+    if (dbFolders && dbFolders.length > 0) {
+      folders = dbFolders;
+    }
+
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("display_name")
+      .eq("id", user.id)
+      .maybeSingle();
+
+    if (profile?.display_name) {
+      displayName = profile.display_name;
+    }
+  } catch {
+    // Database offline
+  }
+
+  if (folders.length === 0) {
+    const { MOCK_FOLDERS } = await import("@/lib/mock-data");
+    folders = MOCK_FOLDERS.map((f) => ({
+      id: f.id,
+      name: f.name,
+      subject: f.subject,
+    }));
+  }
 
   return (
-    <div className="flex min-h-screen">
-      {/* Sidebar */}
-      <aside className="flex w-64 shrink-0 flex-col border-r border-border bg-surface">
-        {/* Logo */}
-        <div className="border-b border-border px-4 py-4">
-          <Link href="/" className="flex items-center gap-2">
-            <span className="text-xl">📄</span>
-            <span className="text-lg font-bold tracking-tight text-ink">
-              PaperLens
-            </span>
-          </Link>
-        </div>
+    <div className="flex min-h-screen flex-col bg-white text-gray-900">
+      {/* Top Header Bar */}
+      <AppHeader
+        userEmail={user.email}
+        displayName={displayName}
+      />
 
-        {/* Folder list */}
-        <nav className="flex-1 overflow-y-auto px-2 py-3">
-          <p className="mb-2 px-2 text-xs font-medium tracking-wide text-faint uppercase">
-            Subject Folders
-          </p>
-          {folders && folders.length > 0 ? (
-            <ul className="space-y-0.5">
-              {folders.map((folder) => (
-                <li key={folder.id}>
-                  <Link
-                    href={`/folders/${folder.id}`}
-                    className="flex items-center gap-2 rounded-md px-2 py-1.5 text-sm text-muted transition-colors hover:bg-canvas hover:text-ink"
-                  >
-                    <span className="text-base">📁</span>
-                    <span className="truncate">
-                      {folder.name}
-                      {folder.subject && (
-                        <span className="ml-1 text-faint">
-                          · {folder.subject}
-                        </span>
-                      )}
-                    </span>
-                  </Link>
-                </li>
-              ))}
-            </ul>
-          ) : (
-            <p className="px-2 text-xs text-faint">No folders yet</p>
-          )}
-        </nav>
-
-        {/* User & sign out */}
-        <div className="border-t border-border px-4 py-3">
-          <p className="truncate text-xs text-muted" title={user.email ?? ""}>
-            {user.email}
-          </p>
-          <form action="/auth/signout" method="post">
-            <SignOutButton />
-          </form>
-        </div>
-      </aside>
-
-      {/* Main content */}
-      <main className="flex-1 overflow-y-auto bg-canvas">{children}</main>
+      {/* Main App Body with SideNav */}
+      <div className="flex flex-1">
+        <Suspense fallback={<aside className="h-[calc(100vh-4rem)] w-16 border-r border-gray-200 bg-white" />}>
+          <SideNav folders={folders} />
+        </Suspense>
+        <main className="flex-1 overflow-y-auto px-4 py-6 md:px-8 md:py-8">
+          {children}
+        </main>
+      </div>
     </div>
   );
 }
 
-/**
- * Sign-out as a Client Component button that calls supabase.auth.signOut
- * without needing a separate API route.
- */
-function SignOutButton() {
-  return (
-    <button
-      type="button"
-      className="mt-1 text-xs text-faint transition-colors hover:text-danger"
-      // onClick handled client-side in a wrapper component.
-      // For SSR simplicity, we use a form action approach later.
-      // For now, this button triggers navigation to a sign-out action.
-      onClick={() => {
-        // Dynamic import to avoid pulling client code into the server bundle.
-        import("@/lib/supabase/client").then(({ createClient }) => {
-          const supabase = createClient();
-          supabase.auth.signOut().then(() => {
-            window.location.href = "/login";
-          });
-        });
-      }}
-    >
-      Sign out
-    </button>
-  );
-}
