@@ -1,0 +1,376 @@
+<!DOCTYPE html><html class="dark" lang="en" style=""><head>
+<meta charset="utf-8">
+<meta content="width=device-width, initial-scale=1.0" name="viewport">
+<title>PaperLens - DBMS Analysis</title>
+<!-- Material Symbols -->
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<!-- Google Fonts -->
+<link href="https://fonts.googleapis.com" rel="preconnect">
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&amp;family=JetBrains+Mono:wght@500&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<!-- Tailwind CSS -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<!-- Tailwind Configuration -->
+<script id="tailwind-config">
+        tailwind.config = {
+          darkMode: "class",
+          theme: {
+            extend: {
+              "colors": {
+                      "primary-container": "#6d28d9",
+                      "surface-container-highest": "#2e334e",
+                      "primary-fixed": "#ebddff",
+                      "on-error": "#690005",
+                      "inverse-primary": "#7331df",
+                      "on-tertiary": "#003825",
+                      "surface-variant": "#2e334e",
+                      "on-primary-container": "#dac5ff",
+                      "primary": "#d3bbff",
+                      "on-surface": "#dee1ff",
+                      "on-secondary-container": "#002c47",
+                      "on-primary-fixed": "#250059",
+                      "on-primary": "#3f008d",
+                      "tertiary-fixed-dim": "#68dba9",
+                      "surface": "#0c112b",
+                      "on-secondary-fixed-variant": "#004b73",
+                      "on-secondary": "#003351",
+                      "surface-container-high": "#232843",
+                      "on-tertiary-fixed-variant": "#005137",
+                      "tertiary-container": "#006545",
+                      "error-container": "#93000a",
+                      "tertiary": "#68dba9",
+                      "on-secondary-fixed": "#001d31",
+                      "primary-fixed-dim": "#d3bbff",
+                      "tertiary-fixed": "#85f8c4",
+                      "inverse-surface": "#dee1ff",
+                      "on-tertiary-container": "#70e4b1",
+                      "on-error-container": "#ffdad6",
+                      "surface-tint": "#d3bbff",
+                      "surface-dim": "#0c112b",
+                      "inverse-on-surface": "#2a2f49",
+                      "surface-container": "#191e38",
+                      "surface-container-low": "#151a33",
+                      "background": "#0c112b",
+                      "outline": "#958da1",
+                      "on-tertiary-fixed": "#002114",
+                      "secondary-fixed": "#cce5ff",
+                      "on-primary-fixed-variant": "#5b00c5",
+                      "outline-variant": "#4a4455",
+                      "secondary-fixed-dim": "#93ccff",
+                      "on-surface-variant": "#ccc3d7",
+                      "secondary": "#93ccff",
+                      "surface-bright": "#333853",
+                      "on-background": "#dee1ff",
+                      "secondary-container": "#3198dc",
+                      "error": "#ffb4ab",
+                      "surface-container-lowest": "#070c25"
+              },
+              "borderRadius": {
+                      "DEFAULT": "0.125rem",
+                      "lg": "0.25rem",
+                      "xl": "0.5rem",
+                      "full": "0.75rem"
+              },
+              "spacing": {
+                      "container-max": "1280px",
+                      "lg": "24px",
+                      "gutter": "20px",
+                      "md": "16px",
+                      "xs": "4px",
+                      "sm": "8px",
+                      "xl": "48px",
+                      "base": "4px"
+              },
+              "fontFamily": {
+                      "label-md": [
+                              "JetBrains Mono"
+                      ],
+                      "headline-lg-mobile": [
+                              "Inter"
+                      ],
+                      "headline-sm": [
+                              "Inter"
+                      ],
+                      "body-lg": [
+                              "Inter"
+                      ],
+                      "headline-lg": [
+                              "Inter"
+                      ],
+                      "body-md": [
+                              "Inter"
+                      ],
+                      "body-sm": [
+                              "Inter"
+                      ],
+                      "headline-md": [
+                              "Inter"
+                      ],
+                      "label-sm": [
+                              "JetBrains Mono"
+                      ]
+              },
+              "fontSize": {
+                      "label-md": [
+                              "13px",
+                              {
+                                      "lineHeight": "1.0",
+                                      "letterSpacing": "0.02em",
+                                      "fontWeight": "500"
+                              }
+                      ],
+                      "headline-lg-mobile": [
+                              "28px",
+                              {
+                                      "lineHeight": "1.2",
+                                      "fontWeight": "700"
+                              }
+                      ],
+                      "headline-sm": [
+                              "18px",
+                              {
+                                      "lineHeight": "1.4",
+                                      "fontWeight": "600"
+                              }
+                      ],
+                      "body-lg": [
+                              "16px",
+                              {
+                                      "lineHeight": "1.6",
+                                      "fontWeight": "400"
+                              }
+                      ],
+                      "headline-lg": [
+                              "32px",
+                              {
+                                      "lineHeight": "1.2",
+                                      "letterSpacing": "-0.02em",
+                                      "fontWeight": "700"
+                              }
+                      ],
+                      "body-md": [
+                              "14px",
+                              {
+                                      "lineHeight": "1.5",
+                                      "fontWeight": "400"
+                              }
+                      ],
+                      "body-sm": [
+                              "12px",
+                              {
+                                      "lineHeight": "1.5",
+                                      "fontWeight": "400"
+                              }
+                      ],
+                      "headline-md": [
+                              "24px",
+                              {
+                                      "lineHeight": "1.3",
+                                      "letterSpacing": "-0.01em",
+                                      "fontWeight": "600"
+                              }
+                      ],
+                      "label-sm": [
+                              "11px",
+                              {
+                                      "lineHeight": "1.0",
+                                      "letterSpacing": "0.05em",
+                                      "fontWeight": "500"
+                              }
+                      ]
+              }
+      },
+          },
+        }
+    </script>
+<style>
+        body {
+            background-color: #0B0D1B; /* Enforced dark navy BG */
+        }
+        
+        /* Custom Scrollbar to match UI's structural rigidity */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #0B0D1B;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #1E233D;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #2e334e;
+        }
+
+        /* Enforced Utilitarian Card Colors & Borders */
+        .util-card {
+            background-color: #14172B;
+            border: 1px solid #1E233D;
+        }
+        
+        /* Specific accent colors requested */
+        .accent-purple { border-top: 4px solid #6D28D9; }
+        .accent-blue { border-top: 4px solid #0284C7; }
+        .accent-red { border-top: 4px solid #DC2626; }
+        .accent-green { border-top: 4px solid #059669; }
+        .accent-orange { border-top: 4px solid #D97706; }
+    </style>
+</head>
+<body class="text-on-surface font-body-md antialiased overflow-x-hidden min-h-screen flex">
+<!-- JSON Component: SideNavBar -->
+<nav class="bg-surface dark:bg-surface border-r border-outline-variant dark:border-outline-variant docked h-screen left-0 w-20 hover:w-64 transition-all duration-300 fixed top-0 z-50 flex flex-col group overflow-hidden">
+<!-- Header -->
+
+<!-- Navigation Tabs -->
+<div class="flex-1 py-lg flex flex-col gap-sm px-sm overflow-y-auto">
+<!-- Tab 1: Home (ACTIVE) -->
+<a class="flex items-center px-md py-sm rounded-lg transition-all duration-200 ease-in-out text-primary font-bold border-r-4 border-primary hover:bg-surface-container-high dark:hover:bg-surface-container-high hover:text-on-surface" href="#">
+<span class="material-symbols-outlined w-6 text-center shrink-0">home</span>
+<span class="ml-md font-label-md text-label-md whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity duration-200">Home</span>
+</a>
+<!-- Tab 2: Subject Folders (INACTIVE) -->
+<a class="flex items-center px-md py-sm rounded-lg transition-all duration-200 ease-in-out text-on-surface-variant dark:text-on-surface-variant hover:bg-surface-container-high dark:hover:bg-surface-container-high hover:text-on-surface border-r-4 border-transparent" href="#">
+<span class="material-symbols-outlined w-6 text-center shrink-0">folder_open</span>
+<span class="ml-md font-label-md text-label-md whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity duration-200">Subject Folders</span>
+</a>
+<!-- Tab 3: Analysis Hub (INACTIVE) -->
+<a class="flex items-center px-md py-sm rounded-lg transition-all duration-200 ease-in-out text-on-surface-variant dark:text-on-surface-variant hover:bg-surface-container-high dark:hover:bg-surface-container-high hover:text-on-surface border-r-4 border-transparent" href="#">
+<span class="material-symbols-outlined w-6 text-center shrink-0">analytics</span>
+<span class="ml-md font-label-md text-label-md whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity duration-200">Analysis Hub</span>
+</a>
+<!-- Tab 4: Predicted Papers (INACTIVE) -->
+<a class="flex items-center px-md py-sm rounded-lg transition-all duration-200 ease-in-out text-on-surface-variant dark:text-on-surface-variant hover:bg-surface-container-high dark:hover:bg-surface-container-high hover:text-on-surface border-r-4 border-transparent" href="#">
+<span class="material-symbols-outlined w-6 text-center shrink-0">auto_awesome</span>
+<span class="ml-md font-label-md text-label-md whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity duration-200">Predicted Papers</span>
+</a>
+<!-- Tab 5: Flashcards (INACTIVE) -->
+<a class="flex items-center px-md py-sm rounded-lg transition-all duration-200 ease-in-out text-on-surface-variant dark:text-on-surface-variant hover:bg-surface-container-high dark:hover:bg-surface-container-high hover:text-on-surface border-r-4 border-transparent" href="#">
+<span class="material-symbols-outlined w-6 text-center shrink-0">quiz</span>
+<span class="ml-md font-label-md text-label-md whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity duration-200">Flashcards</span>
+</a>
+</div>
+<!-- Settings (Bottom) -->
+<div class="p-sm mt-auto border-t border-outline-variant dark:border-outline-variant">
+<a class="flex items-center px-md py-sm rounded-lg transition-all duration-200 ease-in-out text-on-surface-variant dark:text-on-surface-variant hover:bg-surface-container-high dark:hover:bg-surface-container-high hover:text-on-surface border-r-4 border-transparent" href="#">
+<span class="material-symbols-outlined w-6 text-center shrink-0">settings</span>
+<span class="ml-md font-label-md text-label-md whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity duration-200">Settings</span>
+</a>
+</div>
+</nav>
+<!-- Main Content Wrapper -->
+<div class="flex-1 ml-20 flex flex-col min-h-screen">
+<!-- JSON Component: TopAppBar -->
+<header class="bg-surface dark:bg-surface flex justify-between items-center w-full h-16 px-lg max-w-[calc(100%-5rem)] sticky top-0 z-40 border-b border-outline-variant dark:border-outline-variant flat no shadows">
+<!-- Left Side: Breadcrumbs / Brand -->
+<div class="flex items-center gap-md">
+<img alt="PaperLens Logo" class="h-8 w-auto object-contain" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDHmfnsklft5NPL2VOLEsXxfvA3S14yjsY2PKKkbVSvCG1rwYhpHrmjmqBjyeCORGpPpXK-0ZlFGbN70QYrB_3V-ylsFlKjDvcLKBTmACnboP8kTKLxYNu1ZeSOMhS9kWYF0MFfb4R8wdd5czM54aMNGyg2WoiSRT6_AfMNKu55lbw-TntLpIFd9DMzbGD1Xo3Xf_mvDb_voD5i7c5EtDm1MlgxCrGTBWmj1kWxvpFNtbnTsLBmyqH5SiDuDK5wVLWzuxE">
+<nav class="hidden md:flex items-center gap-sm">
+<!-- Nav links derived from JSON -->
+</nav>
+</div>
+<!-- Right Side: Search, Action, Profile -->
+<div class="flex items-center gap-lg">
+<!-- Search Bar (on_left context relative to trailing actions) -->
+
+<!-- Trailing Primary Action -->
+<button class="bg-primary-container hover:bg-inverse-primary text-on-primary-container font-label-md text-label-md py-sm px-md rounded-DEFAULT transition-all duration-200 shadow-none border-none">
+                    Share Workspace
+                </button>
+<!-- Profile Image -->
+<button class="w-8 h-8 rounded-full overflow-hidden border border-outline-variant focus:outline-none focus:ring-2 focus:ring-primary-container shrink-0">
+<img alt="User Avatar" class="w-full h-full object-cover" data-alt="A highly detailed 50-100 word prompt describing a minimalist, flat-design user avatar placeholder. The avatar should feature a generic, abstract silhouette of a person against a subtle, dark tech-inspired background pattern. The aesthetic should be clean, utilitarian, and high-contrast, fitting perfectly into a dark navy academic dashboard theme." src="https://lh3.googleusercontent.com/aida-public/AB6AXuByGcnZvnwWj3p7Q3RJrzJa5l24aPrZUXpeyXz3MokwxrdFJdiArN8IxGtsBNhpVtCMUhJaNtM7zj7orQdvWUOcKsQmGapjXllP89q32ytBtRfeOuq181sJzX2QOukzYjSfMcGuI98MYzm7m2RHPIApczjOEFEu9ovEFQ4oonYRQCAGbi7a3JukZJ6ZASvZk1CD81KlcrGs3t74TLO6PkQNC4Go2xetNz6VSxrWERKpM_pBFmtmZtYmQQ">
+</button>
+</div>
+</header>
+<!-- Main Dashboard Content -->
+<main class="flex-1 p-md md:p-lg lg:p-xl max-w-container-max mx-auto w-full">
+<!-- Page Header -->
+<div class="mb-lg flex"><div class="flex flex-col gap-lg w-full">
+  <!-- 1. New Analysis Group Button at the absolute top -->
+  <div class="flex justify-start">
+    <button class="flex items-center gap-sm bg-primary-container hover:bg-inverse-primary text-on-primary-container font-bold py-md px-lg rounded-lg transition-all duration-300 shadow-lg border-none group">
+      <span class="material-symbols-outlined">add_circle</span>
+      <span class="font-label-md text-label-md uppercase tracking-wider">New Analysis Group</span>
+    </button>
+  </div>
+
+  <!-- 2. Horizontal layout for Search and Filters -->
+  <div class="flex flex-col md:flex-row justify-between items-center gap-md w-full">
+    <div class="relative w-full max-w-2xl">
+      <span class="material-symbols-outlined absolute left-sm top-1/2 -translate-y-1/2 text-on-surface-variant pointer-events-none w-5 text-center text-sm">search</span>
+      <input class="w-full bg-[#14172B] border border-[#1E233D] rounded-lg py-md pl-xl pr-sm text-body-md text-on-surface placeholder:text-on-surface-variant focus:border-primary-container focus:ring-2 focus:ring-primary-container/20 focus:outline-none transition-all" placeholder="Search resources..." type="text">
+    </div>
+    <div class="flex items-center gap-sm bg-[#14172B] border border-[#1E233D] rounded-DEFAULT p-xs shrink-0">
+      <button class="px-sm py-xs text-primary bg-[#1E233D] rounded-DEFAULT font-label-sm text-label-sm">All Types</button>
+      <button class="px-sm py-xs text-on-surface-variant hover:text-on-surface font-label-sm text-label-sm">Recent</button>
+    </div>
+  </div>
+
+  <!-- 3. DBMS Analysis Hub Heading -->
+  <div>
+    <h1 class="text-headline-lg font-bold text-on-surface tracking-tight">DBMS Analysis Hub</h1>
+  </div>
+</div></div>
+<!-- Bento Grid / Cards Container -->
+<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-md">
+<div class="util-card rounded-lg p-md border-t-4 border-[#DC2626] hover:border-primary-container transition-all duration-200 group flex flex-col h-48 relative overflow-hidden">
+<div class="flex justify-between items-start mb-md z-10">
+<div class="bg-primary-container/20 text-primary-container font-label-sm text-label-sm px-sm py-xs rounded-DEFAULT uppercase tracking-wider">Mid-Sem</div>
+<button class="text-on-surface-variant hover:text-on-surface opacity-0 group-hover:opacity-100 transition-opacity"><span class="material-symbols-outlined text-sm">more_vert</span></button>
+</div>
+<h4 class="font-headline-sm text-headline-sm text-on-surface mb-xs z-10">Mid-Sem 2023</h4>
+<p class="font-label-sm text-label-sm text-on-surface-variant font-mono z-10">6 Papers • Last update: 2 days ago</p>
+<div class="mt-auto pt-md border-t border-[#1E233D] flex justify-between items-center z-10">
+<span class="font-label-md text-label-md text-on-surface">85% Accuracy</span>
+<span class="material-symbols-outlined text-primary">analytics</span>
+</div>
+<span class="material-symbols-outlined absolute -bottom-4 -right-4 text-8xl opacity-5 text-on-surface pointer-events-none">settings</span>
+</div>
+<div class="util-card rounded-lg p-md border-t-4 border-[#DC2626] hover:border-primary-container transition-all duration-200 group flex flex-col h-48 relative overflow-hidden">
+<div class="flex justify-between items-start mb-md z-10">
+<div class="bg-primary-container/20 text-primary-container font-label-sm text-label-sm px-sm py-xs rounded-DEFAULT uppercase tracking-wider">Mid-Sem</div>
+<button class="text-on-surface-variant hover:text-on-surface opacity-0 group-hover:opacity-100 transition-opacity"><span class="material-symbols-outlined text-sm">more_vert</span></button>
+</div>
+<h4 class="font-headline-sm text-headline-sm text-on-surface mb-xs z-10">Mid-Sem 2022</h4>
+<p class="font-label-sm text-label-sm text-on-surface-variant font-mono z-10">5 Papers • Last update: 1 week ago</p>
+<div class="mt-auto pt-md border-t border-[#1E233D] flex justify-between items-center z-10">
+<span class="font-label-md text-label-md text-on-surface">92% Accuracy</span>
+<span class="material-symbols-outlined text-primary">analytics</span>
+</div>
+<span class="material-symbols-outlined absolute -bottom-4 -right-4 text-8xl opacity-5 text-on-surface pointer-events-none">settings</span>
+</div>
+<div class="util-card rounded-lg p-md border-t-4 border-[#DC2626] hover:border-primary-container transition-all duration-200 group flex flex-col h-48 relative overflow-hidden">
+<div class="flex justify-between items-start mb-md z-10">
+<div class="bg-primary-container/20 text-primary-container font-label-sm text-label-sm px-sm py-xs rounded-DEFAULT uppercase tracking-wider">End-Sem</div>
+<button class="text-on-surface-variant hover:text-on-surface opacity-0 group-hover:opacity-100 transition-opacity"><span class="material-symbols-outlined text-sm">more_vert</span></button>
+</div>
+<h4 class="font-headline-sm text-headline-sm text-on-surface mb-xs z-10">End-Sem Comprehensive</h4>
+<p class="font-label-sm text-label-sm text-on-surface-variant font-mono z-10">12 Papers • Last update: 5 days ago</p>
+<div class="mt-auto pt-md border-t border-[#1E233D] flex justify-between items-center z-10">
+<span class="font-label-md text-label-md text-on-surface">78% Accuracy</span>
+<span class="material-symbols-outlined text-primary">analytics</span>
+</div>
+<span class="material-symbols-outlined absolute -bottom-4 -right-4 text-8xl opacity-5 text-on-surface pointer-events-none">settings</span>
+</div>
+<div class="util-card rounded-lg p-md border-t-4 border-[#DC2626] hover:border-primary-container transition-all duration-200 group flex flex-col h-48 relative overflow-hidden">
+<div class="flex justify-between items-start mb-md z-10">
+<div class="bg-primary-container/20 text-primary-container font-label-sm text-label-sm px-sm py-xs rounded-DEFAULT uppercase tracking-wider">Laboratory</div>
+<button class="text-on-surface-variant hover:text-on-surface opacity-0 group-hover:opacity-100 transition-opacity"><span class="material-symbols-outlined text-sm">more_vert</span></button>
+</div>
+<h4 class="font-headline-sm text-headline-sm text-on-surface mb-xs z-10">Lab Prep</h4>
+<p class="font-label-sm text-label-sm text-on-surface-variant font-mono z-10">4 Papers • Last update: 1 day ago</p>
+<div class="mt-auto pt-md border-t border-[#1E233D] flex justify-between items-center z-10">
+<span class="font-label-md text-label-md text-on-surface">95% Accuracy</span>
+<span class="material-symbols-outlined text-primary">analytics</span>
+</div>
+<span class="material-symbols-outlined absolute -bottom-4 -right-4 text-8xl opacity-5 text-on-surface pointer-events-none">settings</span>
+</div>
+</div>
+</main>
+</div>
+
+
+</body></html>
