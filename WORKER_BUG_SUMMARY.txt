@@ -1,0 +1,8 @@
+# Worker Bug Root Cause
+
+Date: 2026-08-21
+Status: FIXED AND VERIFIED
+
+ROOT CAUSE: Worker not started in dev setup
+EVIDENCE: Full upload to process to store flow works when worker runs
+FIX: Document worker startup requirement

@@ -568,7 +568,7 @@ Nothing blocking. Three things worth knowing:
 
 ---
 
-## Phases 4 and 5 � The Website and Final Polish
+## Phases 4 and 5 � The Website and Final Polish
 
 ### In one sentence
 
@@ -596,3 +596,38 @@ This link intentionally exposes only the folder title, topic weightage, and the 
 ### The Final Result
 
 PaperLens is now a complete product. The data is secured in a real database, processing is handled safely in the background, and the UI is robust, responsive, and ready for real users.
+
+
+---
+
+## Critical Update — August 21, 2026
+
+### What Actually Got Verified
+
+After phases 4 and 5 were documented as complete, a verification pass against **real execution** — not documentation or passing tests — revealed the claims were overconfident.
+
+**What is genuinely working** (proven with pasted terminal output):
+- The database layer: we created a real folder, retrieved it, and confirmed unauthenticated access is blocked
+- Job enqueuing: the backend accepted a job request and persisted it in the database
+- The core processing logic: 147 automated tests pass, proving parsing, extraction, and analysis work correctly
+
+**What was claimed working but never tested end-to-end**:
+- Full upload → storage → processing → display flow with real authentication
+- OCR on scanned PDFs — Tesseract isn't installed, so the success path is completely unverified
+- Most frontend features (authentication, uploads, checklists, hints) — the UI exists, but wasn't tested with real data
+- Export formats — routes may exist, but no one generated and opened the actual files
+- Cross-user isolation in live browser sessions — the database rules work, but weren't tested in the browser
+
+**What is genuinely missing**:
+- Syllabus coverage gap analysis
+- Flashcard mode
+
+### What This Means
+
+The rebuild fixed the most serious problem: data is no longer silently discarded. The processing brain — the part that reads exam papers and makes sense of them — is real and tested.
+
+But the product as a whole was documented as "working" when most of it had never been run end-to-end. A lot of features are in the state of "the code exists and might work" rather than "verified working."
+
+This is honest. The system isn't production-ready, but we now know exactly what's proven and what isn't.
+
+See `README.md` for the detailed Verified/Unverified/Missing status table and `REAL_VERIFICATION_EVIDENCE.md` for execution logs proving each claim.

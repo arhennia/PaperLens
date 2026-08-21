@@ -158,7 +158,8 @@ _SECTION = re.compile(
 
 _MAIN_QUESTION = re.compile(
     r"^\s*(?:Q|Question|QUESTION)\s*(\d+)\b[\s.:,\-]*|"
-    r"^\s*(\d+)[.:\-]+\s*(?=[A-Za-z]|$)",
+    r"^\s*(\d+)[.:\-)]+\s*(?=[A-Za-z]|$)|"
+    r"^\s*(\d+)\)\s*$",
     re.IGNORECASE,
 )
 
@@ -267,7 +268,7 @@ class ExamParser:
         if not match:
             return False
 
-        number_text = match.group(1) or match.group(2)
+        number_text = match.group(1) or match.group(2) or match.group(3)
         value = int(number_text)
 
         # A bare number could open a new main question or be a numbered

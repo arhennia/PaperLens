@@ -6,46 +6,78 @@ PaperLens parses your exam papers, clusters semantically similar questions, scor
 
 ---
 
-## ✅ What's Built & Working Right Now
+## Status: Verified vs. Unverified (August 21, 2026)
 
-### Backend (FastAPI + Python)
+**Rule**: Nothing marked verified without real execution evidence (terminal output, extracted text, or actual API responses). See `REAL_VERIFICATION_EVIDENCE.md` for complete proof.
 
-The entire processing pipeline is **fully functional end-to-end**:
+### Backend Processing (FastAPI + Python)
+
+| Feature | Status | Evidence |
+|---|---|---|
+| Hierarchical question parser (3-level deep) | ✅ Verified | 147/147 unit tests passing |
+| OCR normalization & noise removal | ✅ Verified | Tests pass, correct output on synthetic data |
+| Question validation & confidence scoring | ✅ Verified | Tests pass |
+| Exact-match deduplication (SHA-256 hashing) | ✅ Verified | Tests pass |
+| Fuzzy similarity clustering (RapidFuzz) | ✅ Verified | Algorithm works; threshold unvalidated |
+| Topic classification | ✅ Verified | Tests pass |
+| 6-factor priority scoring engine | ✅ Verified | Tests pass; deterministic |
+| 3-stage automatic year detection | ✅ Verified | Tests pass |
+| Native text extraction (PyMuPDF) | ✅ Verified | Tests pass with generated PDFs |
+| OCR fallback for scanned PDFs (Tesseract) | ⚠️ **Unverified** | **Tesseract not installed; failure path works, success path untested** |
+| Durable background job queue | ✅ Verified | Job enqueued and persisted in DB (real API call) |
+| Job worker processing | ⏸️ Untested | Code exists, not executed end-to-end |
+| Duplicate PDF detection (idempotency) | ⏸️ Untested | Logic verified in tests, not live |
+
+### Database & Infrastructure (Supabase)
+
+| Feature | Status | Evidence |
+|---|---|---|
+| Database writes (folders, papers, jobs) | ✅ Verified | Created folder ID `d2bd3b52-1797-41fb-9d2b-dfb6830282ce` |
+| Database reads | ✅ Verified | Retrieved folder successfully |
+| RLS blocks unauthenticated access | ✅ Verified | Got 401 Unauthorized with anon key |
+| Foreign key constraints enforced | ✅ Verified | Rejected invalid user_id with FK error |
+| Job queue persistence | ✅ Verified | Job `06c4ba82-d95e-4e1d-97ab-f59f917aae6f` in `processing_jobs` |
+| Supabase Storage uploads | ⏸️ Untested | Storage bucket exists; upload flow not executed |
+| RLS cross-user isolation (live sessions) | ⏸️ Untested | pgTAP tests pass; browser sessions not tested |
+
+### Frontend (Next.js 15 + Tailwind CSS v4)
+
+| Feature | Status | Evidence |
+|---|---|---|
+| Frontend builds successfully | ✅ Verified | `npm run build` succeeded, 7 routes compiled |
+| Authentication UI exists | ✅ Verified | `/login` page source code reviewed |
+| Google & Email Authentication flow | ⏸️ Untested | Auth code exists, not executed end-to-end |
+| Protected Dashboard & Folders | ⏸️ Untested | Routes exist, not tested with real auth |
+| Multi-file drag-and-drop upload zone | ⏸️ Untested | UI exists, upload → storage → process not tested |
+| Live progress polling with Realtime | ⏸️ Untested | Code exists, not tested |
+| Analytics dashboard | ⏸️ Untested | Components exist, not tested with real data |
+| Topic weightage & question listing | ⏸️ Untested | Components exist, not tested |
+| Read-only public share links | ⏸️ Untested | Code exists, not tested |
+| Interactive checklists | ⏸️ Untested | Code exists, not tested |
+| AI Answer Hints | ⏸️ Untested | Code exists, not tested |
+| Mock Paper Generation | ⏸️ Untested | Code exists, not tested |
+
+### Export Formats
+
+| Feature | Status | Evidence |
+|---|---|---|
+| Markdown export | ⏸️ Untested | Need to verify route exists and generates valid file |
+| LaTeX export | ⏸️ Untested | Need to verify route exists and generates valid file |
+| Anki CSV export | ⏸️ Untested | Need to verify route exists and generates valid file |
+| Printable PDF export | ⏸️ Untested | Need to verify route exists and generates valid file |
+
+### Missing Features (Not Implemented)
 
 | Feature | Status |
 |---|---|
-| Multi-PDF upload session creation | ✅ Working |
-| Native text extraction (PyMuPDF) | ✅ Working |
-| OCR fallback for scanned PDFs (Tesseract) | ✅ Working |
-| 3-stage automatic year detection | ✅ Working |
-| Manual year override with pipeline resume | ✅ Working |
-| Hierarchical question parser (3-level deep) | ✅ Working |
-| OCR normalization & noise removal | ✅ Working |
-| Question validation & confidence scoring | ✅ Working |
-| Rejected question audit trail | ✅ Working |
-| Exact-match deduplication (SHA-256 hashing) | ✅ Working |
-| Fuzzy similarity clustering (RapidFuzz) | ✅ Working |
-| Topic / chapter classification | ✅ Working |
-| 6-factor priority scoring engine | ✅ Working |
-| Pre-computed analytics caching | ✅ Working |
-| Duplicate PDF detection (idempotent processing) | ✅ Working |
-| Durable background job queue | ✅ Working |
+| Syllabus Coverage Gap Analysis (6.9) | ❌ Missing |
+| Flashcard/Active Recall Mode (6.10) | ❌ Missing |
 
-### Frontend (Next.js 15 + Tailwind CSS v4 + Supabase)
-
-| Feature | Status |
-|---|---|
-| Google & Email Authentication | ✅ Working |
-| Protected Dashboard & Folders | ✅ Working |
-| Multi-file drag-and-drop upload zone | ✅ Working |
-| Live progress polling with Realtime | ✅ Working |
-| Analytics dashboard (summary cards) | ✅ Working |
-| Topic weightage & question listing | ✅ Working |
-| Read-only public share links | ✅ Working |
-| Interactive checklists | ✅ Working |
-| AI Answer Hints | ✅ Working |
-| Mock Paper Generation | ✅ Working |
-| Row-Level Security (RLS) data isolation | ✅ Working |
+### Legend
+- ✅ **Verified**: Proven with real execution evidence
+- ⏸️ **Untested**: Code exists but not executed/verified
+- ⚠️ **Unverified**: Missing dependencies or blocked by environment
+- ❌ **Missing**: Not implemented
 
 ---
 

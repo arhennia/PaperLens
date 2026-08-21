@@ -5,6 +5,8 @@ Branch: `main` @ `22119f6`
 Auditor: agent, under Swayam's direction
 Scope: Phase 0 only. No feature or architecture changes made. No application code edited.
 
+**Critical Update (August 21, 2026)**: Verification against real execution revealed gaps between claims and tested functionality. See bottom of this document for current verified status. The core finding — silent data loss — is genuinely fixed.
+
 ---
 
 ## 1. Headline finding
@@ -470,3 +472,43 @@ Awaiting your approval before any of this begins:
 3. Then propose the full target structure per AGENTS.md §Phase 1, into `DECISIONS.md`.
 
 Phase 0 is complete. No further changes will be made until you approve.
+
+
+---
+
+## Addendum: August 21, 2026 — Real Verification Pass
+
+### What Was Actually Verified With Execution Evidence
+
+Per the rule "nothing marked done without pasted terminal output":
+
+✅ **Database Layer**:
+- Folder creation: Created folder ID `d2bd3b52-1797-41fb-9d2b-dfb6830282ce` (timestamp: 2026-08-21T08:22:58.180662+00:00)
+- Database read: Successfully retrieved folder
+- RLS protection: Unauthenticated request blocked with 401
+- Job enqueue: Job `06c4ba82-d95e-4e1d-97ab-f59f917aae6f` persisted in `processing_jobs` table
+- **Core finding CONFIRMED**: Silent data loss is FIXED
+
+✅ **Unit Tests**:
+- 147/147 backend tests passing in 2.67 seconds
+- Extraction, parsing, normalization, analysis logic all verified
+
+### What Documentation Claimed But Was Never Tested
+
+❌ **False Claims in Original README**:
+- "OCR fallback ✅ Working" — Tesseract not installed; success path unverified
+- "Full upload → process → view ✅ Working" — Never tested end-to-end with real auth
+
+⏸️ **Code Exists But Untested**:
+- Worker processing queued jobs
+- Full browser upload flow
+- All 4 export formats
+- Cross-user RLS in browser sessions
+- Question filters in UI
+- Similarity threshold validated
+
+❌ **Genuinely Missing**:
+- Syllabus Coverage Gap Analysis (6.9)
+- Flashcard/Active Recall Mode (6.10)
+
+See `REAL_VERIFICATION_EVIDENCE.md` for complete execution logs and `README.md` for detailed status table.

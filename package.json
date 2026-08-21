@@ -6,6 +6,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
+    "backend": "cd backend && python -m uvicorn main:app --reload --port 8001",
+    "worker": "cd backend && python -m worker",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:db": "bash supabase/tests/run_tests.sh",
@@ -15,6 +17,7 @@
     "@supabase/ssr": "0.7.0",
     "@supabase/supabase-js": "2.58.0",
     "katex": "0.18.4",
+    "lucide-react": "^1.33.0",
     "next": "15.5.23",
     "react": "19.1.1",
     "react-dom": "19.1.1"

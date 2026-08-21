@@ -1,0 +1,6 @@
+Front,Back,Tags
+"Discuss the dining philosophers problem and its solution","Repeated 1x | Avg 12.0 marks | Priority: critical",Operating Systems_critical
+"List and explain all four necessary conditions for deadlock","Repeated 1x | Avg 10.0 marks | Priority: very_high",Operating Systems_very_high
+"Compare and contrast paging with segmentation memory management","Repeated 1x | Avg 10.0 marks | Priority: very_high",Operating Systems_very_high
+"Explain thrashing and how to prevent it in virtual memory systems","Repeated 1x | Avg 10.0 marks | Priority: very_high",Operating Systems_very_high
+"Define semaphore. Give an example of its usage in synchronization","Repeated 1x | Avg 8.0 marks | Priority: very_high",Operating Systems_very_high
