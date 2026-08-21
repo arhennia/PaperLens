@@ -1,14 +1,6 @@
 "use client";
 
-/**
- * Share modal — creates and manages share links for a folder.
- *
- * Creates share tokens via server action. The plaintext token is shown once and
- * can be copied. Existing active links can be revoked.
- */
-
 import { useCallback, useEffect, useRef, useState, useTransition } from "react";
-
 import {
   createShareLink,
   revokeShareLink,
@@ -36,7 +28,7 @@ export function ShareModal({ folderId }: { folderId: string }) {
       const data = await getShareLinks(folderId);
       setLinks(data);
     } catch {
-      // Silently fail — modal will show empty state.
+      // Silently fail
     }
   }, [folderId]);
 
@@ -59,7 +51,7 @@ export function ShareModal({ folderId }: { folderId: string }) {
         setCopied(false);
         await fetchLinks();
       } catch {
-        // Error handling.
+        // Error handling
       }
     });
   }
@@ -70,7 +62,7 @@ export function ShareModal({ folderId }: { folderId: string }) {
         await revokeShareLink(linkId);
         await fetchLinks();
       } catch {
-        // Error handling.
+        // Error handling
       }
     });
   }
@@ -86,98 +78,105 @@ export function ShareModal({ folderId }: { folderId: string }) {
 
   return (
     <>
-      {/* Trigger — rendered by the parent */}
       <button
         type="button"
         onClick={open}
-        className="inline-flex items-center gap-1.5 rounded-md border border-border bg-surface px-3 py-2 text-sm font-medium text-ink transition-colors hover:bg-canvas"
+        className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-surface px-3 py-2 text-xs md:text-sm font-semibold text-ink shadow-xs hover:bg-surface-container transition-all cursor-pointer"
       >
-        <svg
-          className="h-4 w-4"
-          fill="none"
-          viewBox="0 0 24 24"
-          strokeWidth={1.5}
-          stroke="currentColor"
-          aria-hidden="true"
-        >
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            d="M7.217 10.907a2.25 2.25 0 1 0 0 2.186m0-2.186c.18.324.283.696.283 1.093s-.103.77-.283 1.093m0-2.186 9.566-5.314m-9.566 7.5 9.566 5.314m0 0a2.25 2.25 0 1 0 3.935 2.186 2.25 2.25 0 0 0-3.935-2.186Zm0-12.814a2.25 2.25 0 1 0 3.933-2.185 2.25 2.25 0 0 0-3.933 2.185Z"
-          />
-        </svg>
-        Share
+        <span className="material-symbols-outlined text-[18px] text-muted">
+          ios_share
+        </span>
+        <span>Share Workspace</span>
       </button>
 
       <dialog
         ref={dialogRef}
-        className="w-full max-w-lg rounded-xl border border-border bg-surface p-0 shadow-xl backdrop:bg-ink/40"
+        className="w-full max-w-lg rounded-2xl border border-border bg-surface p-0 shadow-2xl backdrop:bg-ink/40"
         onClick={(e) => {
           if (e.target === dialogRef.current) close();
         }}
       >
         <div className="p-6">
-          <h2 className="text-lg font-semibold text-ink">Share Workspace</h2>
-          <p className="mt-1 text-sm text-muted">
-            Create a public read-only link. Anyone with the link can view your
-            analysis without signing in.
+          <div className="flex items-center justify-between border-b border-border pb-3">
+            <div className="flex items-center gap-2">
+              <span className="material-symbols-outlined text-primary text-2xl">
+                share
+              </span>
+              <h2 className="text-base font-bold text-ink">
+                Share Analyzed Workspace
+              </h2>
+            </div>
+            <button
+              type="button"
+              onClick={close}
+              className="text-faint hover:text-ink transition-colors p-1"
+            >
+              <span className="material-symbols-outlined text-[20px]">close</span>
+            </button>
+          </div>
+
+          <p className="mt-3 text-xs text-muted leading-relaxed">
+            Generate a secure, public read-only link for study peers. Anyone with this link can view the extracted questions, topic weightage, and study tools without needing to log in.
           </p>
 
-          {/* New token display */}
+          {/* Newly created token display */}
           {newToken && (
-            <div className="mt-4 rounded-lg border border-success/30 bg-success-soft p-3">
-              <p className="text-xs font-medium text-success">
-                ✓ Share link created
+            <div className="mt-4 rounded-xl border border-success/30 bg-success-soft p-4">
+              <p className="text-xs font-bold text-success flex items-center gap-1">
+                <span className="material-symbols-outlined text-[16px]">check_circle</span>
+                <span>Share Link Ready</span>
               </p>
-              <div className="mt-2 flex items-center gap-2">
+              <div className="mt-2.5 flex items-center gap-2">
                 <input
                   type="text"
                   readOnly
                   value={`${typeof window !== "undefined" ? window.location.origin : ""}/share/${newToken}`}
-                  className="flex-1 rounded-md border border-border bg-canvas px-2 py-1.5 text-xs text-ink font-mono"
+                  className="flex-1 rounded-lg border border-border bg-surface px-3 py-1.5 text-xs text-ink font-mono select-all shadow-2xs"
                 />
                 <button
                   type="button"
                   onClick={copyLink}
-                  className={buttonSecondary}
+                  className={`${buttonPrimary} text-xs font-semibold px-4`}
                 >
-                  {copied ? "Copied!" : "Copy"}
+                  {copied ? "Copied! ✓" : "Copy Link"}
                 </button>
               </div>
-              <p className="mt-2 text-xs text-faint">
-                This link will not be shown again. Save it now.
+              <p className="mt-2 text-[11px] text-faint">
+                Save or send this link now.
               </p>
             </div>
           )}
 
-          {/* Create button */}
+          {/* Action button */}
           <div className="mt-4">
             <button
               type="button"
               onClick={handleCreate}
-              className={buttonPrimary}
+              className={`${buttonPrimary} text-xs font-semibold`}
               disabled={isPending}
             >
-              {isPending ? "Creating…" : "+ Create new link"}
+              {isPending ? "Generating Share Link…" : "+ Generate New Share Link"}
             </button>
           </div>
 
-          {/* Existing links */}
+          {/* Existing active links */}
           {links.length > 0 && (
-            <div className="mt-6">
-              <h3 className="text-sm font-medium text-ink">Active Links</h3>
-              <ul className="mt-2 space-y-2">
+            <div className="mt-6 border-t border-border pt-4">
+              <h3 className="text-xs font-bold uppercase tracking-wider text-ink">
+                Active Public Links ({links.length})
+              </h3>
+              <ul className="mt-3 space-y-2">
                 {links.map((link) => (
                   <li
                     key={link.id}
-                    className="flex items-center justify-between rounded-lg border border-border bg-canvas px-3 py-2"
+                    className="flex items-center justify-between rounded-xl border border-border bg-surface-container-low p-3 text-xs"
                   >
                     <div>
-                      <p className="text-xs text-muted">
+                      <p className="font-semibold text-ink">
                         Created {formatDate(link.created_at)}
                       </p>
                       {link.expires_at && (
-                        <p className="text-xs text-faint">
+                        <p className="text-[11px] text-faint">
                           Expires {formatDate(link.expires_at)}
                         </p>
                       )}
@@ -185,10 +184,10 @@ export function ShareModal({ folderId }: { folderId: string }) {
                     <button
                       type="button"
                       onClick={() => handleRevoke(link.id)}
-                      className={buttonDanger}
+                      className={`${buttonDanger} text-xs py-1 px-2.5`}
                       disabled={isPending}
                     >
-                      Revoke
+                      Revoke Link
                     </button>
                   </li>
                 ))}
@@ -196,8 +195,7 @@ export function ShareModal({ folderId }: { folderId: string }) {
             </div>
           )}
 
-          {/* Close */}
-          <div className="mt-6 flex justify-end">
+          <div className="mt-6 flex justify-end border-t border-border pt-3">
             <button type="button" onClick={close} className={buttonSecondary}>
               Done
             </button>
