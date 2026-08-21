@@ -2308,3 +2308,11 @@ scorers and the 0.84 threshold remains unmeasured, exactly as D-024 requires it 
 **Context.** Students need to share folders publicly without requiring classmates to log in, but without leaking private paths, internal IDs, or exposing other folders.
 
 **Reasoning.** By having the Server Component do the privileged read and immediately mapping the data into a safe \SharedFolder\ interface, we guarantee zero accidental data leakage. Any field not explicitly added to the projection interface will simply not exist in the public output.
+
+### D-018 — Frontend Reference Architecture and Design System Unification
+
+**Decision.** Unified all reference screen components from `frontend/Ref/` into a cohesive Next.js App Router frontend architecture. Placed the official branding logo (`/logo.png`) in the top application header, constructed a docked navigation rail (`SideNav`), standardized the design system on a developer-grade academic intelligence theme (Inter + JetBrains Mono, Tailwind v4 tokens), and assembled the Exam Hub dashboard, Question Intelligence workspace, High-Yield Checklist with a 25-minute Pomodoro study session timer, AI Predicted Mock Paper Generator, and 3D flashcard active recall mode.
+
+**Context.** The reference folder contained 6 disparate design bundles with alignment discrepancies, disjointed header placements, and isolated screen mockups. We needed a production-ready, standardized layout adhering to strict geometric equilibrium.
+
+**Reasoning.** Integrating all individual modes into unified Server and Client components under shared layout shells ensures complete type safety, responsive desktop and mobile flexibility, zero TypeScript errors, and seamless user interaction without navigation friction.
