@@ -1,17 +1,6 @@
 "use client";
 
-/**
- * Topic accordions — the core question display.
- *
- * Groups questions by topic. Each topic is a collapsible section. Per question:
- * KaTeX-rendered canonical text, type/difficulty/priority badges, repeat count,
- * year range, page references, and low-confidence OCR warnings.
- *
- * Uses every display primitive: Badge, MathText, and all format helpers.
- */
-
 import { useState } from "react";
-
 import { MathText } from "@/components/ui/math-text";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -28,7 +17,6 @@ import {
 } from "@/lib/format";
 import type {
   QuestionGroupsRow,
-  QuestionsRow,
   TopicsRow,
   QuestionType,
   Difficulty,
@@ -36,7 +24,7 @@ import type {
 } from "@/types/database.generated";
 
 interface TopicGroup {
-  topic: TopicsRow | null;
+  topic: (TopicsRow & { weightage_percent?: number | null }) | null;
   groups: (QuestionGroupsRow & {
     question_label?: string | null;
     page_numbers?: number[];
@@ -53,7 +41,7 @@ export function TopicAccordions({
   topicGroups: TopicGroup[];
 }) {
   const [openTopics, setOpenTopics] = useState<Set<string>>(
-    () => new Set(topicGroups.length <= 3 ? topicGroups.map((tg) => tg.topic?.id ?? "uncategorized") : []),
+    () => new Set(topicGroups.map((tg) => tg.topic?.id ?? "uncategorized")),
   );
 
   function toggleTopic(topicId: string) {
@@ -68,71 +56,124 @@ export function TopicAccordions({
     });
   }
 
+  function expandAll() {
+    setOpenTopics(new Set(topicGroups.map((tg) => tg.topic?.id ?? "uncategorized")));
+  }
+
+  function collapseAll() {
+    setOpenTopics(new Set());
+  }
+
   if (topicGroups.length === 0) {
     return (
-      <div className="mt-8 text-center">
-        <p className="text-sm text-muted">
-          No questions extracted yet. Upload papers and run analysis to see
-          topics here.
+      <div className="mt-8 rounded-2xl border border-border bg-surface p-8 text-center">
+        <span className="material-symbols-outlined text-3xl text-faint">
+          psychology_alt
+        </span>
+        <p className="mt-2 text-sm font-semibold text-ink">
+          No questions categorized yet
+        </p>
+        <p className="mt-1 text-xs text-muted">
+          Upload question paper PDFs above and PaperLens will automatically parse and group questions by topic.
         </p>
       </div>
     );
   }
 
+  const totalQuestions = topicGroups.reduce(
+    (acc, tg) => acc + tg.groups.length,
+    0,
+  );
+
   return (
-    <div className="mt-8 space-y-3">
-      <h2 className="text-lg font-semibold text-ink">Topics & Questions</h2>
+    <div className="mt-8 space-y-4">
+      {/* Section Header & Expand/Collapse Controls */}
+      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border pb-3">
+        <div className="flex items-center gap-2">
+          <span className="material-symbols-outlined text-primary text-xl">
+            menu_book
+          </span>
+          <h2 className="text-base font-bold text-ink">
+            Topic & Question Intelligence
+          </h2>
+          <span className="rounded-full bg-primary-soft px-2.5 py-0.5 text-xs font-semibold text-primary">
+            {totalQuestions} questions across {topicGroups.length} topic{topicGroups.length === 1 ? "" : "s"}
+          </span>
+        </div>
 
-      {topicGroups.map((tg) => {
-        const topicId = tg.topic?.id ?? "uncategorized";
-        const isOpen = openTopics.has(topicId);
-        const topicName = tg.topic?.name ?? "Uncategorized";
-
-        return (
-          <div
-            key={topicId}
-            className="overflow-hidden rounded-lg border border-border bg-surface"
+        <div className="flex items-center gap-2 text-xs">
+          <button
+            type="button"
+            onClick={expandAll}
+            className="text-muted hover:text-primary transition-colors font-medium cursor-pointer"
           >
-            {/* Accordion header */}
-            <button
-              type="button"
-              onClick={() => toggleTopic(topicId)}
-              className="flex w-full items-center justify-between px-4 py-3 text-left transition-colors hover:bg-canvas"
-              aria-expanded={isOpen}
-            >
-              <div className="flex items-center gap-2">
-                <svg
-                  className={`h-4 w-4 text-faint transition-transform ${isOpen ? "rotate-90" : ""}`}
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  strokeWidth={2}
-                  stroke="currentColor"
-                  aria-hidden="true"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    d="m8.25 4.5 7.5 7.5-7.5 7.5"
-                  />
-                </svg>
-                <span className="font-medium text-ink">{topicName}</span>
-                <span className="rounded-full bg-canvas px-2 py-0.5 text-xs text-faint">
-                  {tg.groups.length} question{tg.groups.length !== 1 ? "s" : ""}
-                </span>
-              </div>
-            </button>
+            Expand All
+          </button>
+          <span className="text-faint">•</span>
+          <button
+            type="button"
+            onClick={collapseAll}
+            className="text-muted hover:text-primary transition-colors font-medium cursor-pointer"
+          >
+            Collapse All
+          </button>
+        </div>
+      </div>
 
-            {/* Accordion body */}
-            {isOpen && (
-              <div className="divide-y divide-border border-t border-border">
-                {tg.groups.map((group) => (
-                  <QuestionGroupCard key={group.id} group={group} />
-                ))}
-              </div>
-            )}
-          </div>
-        );
-      })}
+      {/* Accordions */}
+      <div className="space-y-3">
+        {topicGroups.map((tg) => {
+          const topicId = tg.topic?.id ?? "uncategorized";
+          const isOpen = openTopics.has(topicId);
+          const topicName = tg.topic?.name ?? "Uncategorized Concepts";
+
+          return (
+            <div
+              key={topicId}
+              className="overflow-hidden rounded-xl border border-border bg-surface shadow-xs transition-all"
+            >
+              {/* Accordion header */}
+              <button
+                type="button"
+                onClick={() => toggleTopic(topicId)}
+                className="flex w-full items-center justify-between px-5 py-3.5 text-left transition-colors hover:bg-surface-container-low cursor-pointer"
+                aria-expanded={isOpen}
+              >
+                <div className="flex items-center gap-3">
+                  <span
+                    className={`material-symbols-outlined text-faint transition-transform duration-200 text-[20px] ${
+                      isOpen ? "rotate-90 text-primary" : ""
+                    }`}
+                  >
+                    chevron_right
+                  </span>
+                  <span className="font-bold text-sm text-ink">{topicName}</span>
+                  <span className="rounded-md bg-surface-container px-2 py-0.5 text-[11px] font-semibold text-muted">
+                    {tg.groups.length} {tg.groups.length === 1 ? "question" : "questions"}
+                  </span>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  {tg.topic?.weightage_percent != null && (
+                    <span className="text-xs font-bold text-primary">
+                      {tg.topic.weightage_percent.toFixed(0)}% Weightage
+                    </span>
+                  )}
+                </div>
+              </button>
+
+              {/* Accordion body */}
+              {isOpen && (
+                <div className="divide-y divide-border border-t border-border bg-surface">
+                  {tg.groups.map((group) => (
+                    <QuestionGroupCard key={group.id} group={group} />
+                  ))}
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
     </div>
   );
 }
@@ -157,73 +198,82 @@ function QuestionGroupCard({
   const priorityLabel = labelFor(group.priority_level as PriorityLevel | null, PRIORITY_LABELS);
 
   return (
-    <div className="px-4 py-3 print-avoid-break">
-      {/* Question label and meta line */}
-      <div className="flex flex-wrap items-center gap-2">
-        {group.question_label && (
-          <span className="text-xs font-semibold text-muted">
-            {group.question_label}
-          </span>
-        )}
+    <div className="p-4 hover:bg-surface-container-low/30 transition-colors print-avoid-break">
+      {/* Top Meta Line: Badges & Marks */}
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <div className="flex flex-wrap items-center gap-1.5">
+          {group.question_label && (
+            <span className="rounded bg-surface-container px-1.5 py-0.5 text-xs font-mono font-bold text-ink">
+              {group.question_label}
+            </span>
+          )}
 
-        {repeatBadge && (
-          <Badge className="bg-warning-soft text-warning border-warning/30">
-            {repeatBadge}
-          </Badge>
-        )}
+          {repeatBadge && (
+            <Badge className="bg-warning-soft text-warning border-warning/30 font-bold">
+              🔥 {repeatBadge}
+            </Badge>
+          )}
 
-        {priorityLabel && group.priority_level && (
-          <Badge
-            className={
-              PRIORITY_CLASSES[group.priority_level as PriorityLevel] ??
-              undefined
-            }
-          >
-            {priorityLabel}
-          </Badge>
-        )}
+          {priorityLabel && group.priority_level && (
+            <Badge
+              className={
+                PRIORITY_CLASSES[group.priority_level as PriorityLevel] ??
+                undefined
+              }
+            >
+              {priorityLabel}
+            </Badge>
+          )}
 
-        {typeLabel && (
-          <Badge className="bg-accent-soft text-accent border-accent/30">
-            {typeLabel}
-          </Badge>
-        )}
+          {typeLabel && (
+            <Badge className="bg-secondary-soft text-secondary border-secondary/30">
+              {typeLabel}
+            </Badge>
+          )}
 
-        {diffLabel && group.difficulty && (
-          <Badge
-            className={
-              DIFFICULTY_CLASSES[group.difficulty as Difficulty] ?? undefined
-            }
-          >
-            {diffLabel}
-          </Badge>
-        )}
+          {diffLabel && group.difficulty && (
+            <Badge
+              className={
+                DIFFICULTY_CLASSES[group.difficulty as Difficulty] ?? undefined
+              }
+            >
+              {diffLabel}
+            </Badge>
+          )}
+        </div>
 
         {group.marks != null && (
-          <span className="text-xs text-faint">
-            {formatMarks(group.avg_marks ?? group.marks)} marks
+          <span className="rounded-md bg-surface-container-low px-2 py-0.5 text-xs font-semibold text-ink border border-border">
+            {formatMarks(group.avg_marks ?? group.marks)} Marks
           </span>
         )}
       </div>
 
-      {/* Question text with KaTeX */}
-      <div className="mt-2 text-sm leading-relaxed text-ink">
+      {/* Canonical Question text with KaTeX Math rendering */}
+      <div className="mt-2.5 text-xs md:text-sm leading-relaxed text-ink font-normal">
         <MathText>{group.canonical_text}</MathText>
       </div>
 
-      {/* Footer meta */}
-      <div className="mt-2 flex flex-wrap items-center gap-3 text-xs text-faint">
-        <span>{yearRange}</span>
+      {/* Footer Provenance Meta */}
+      <div className="mt-3 flex flex-wrap items-center gap-3 text-[11px] text-faint">
+        <span className="flex items-center gap-1 text-muted font-medium">
+          <span className="material-symbols-outlined text-[14px]">calendar_today</span>
+          {yearRange}
+        </span>
+
         {group.distinct_years > 1 && (
-          <span>{group.distinct_years} years</span>
+          <span>• Seen across {group.distinct_years} exam years</span>
         )}
-        {pageRef && <span>{pageRef}</span>}
+
+        {pageRef && <span>• {pageRef}</span>}
+
         {group.has_low_confidence && (
           <span
-            className="text-warning"
-            title="Some text was extracted with low OCR confidence. Check the original PDF."
+            className="flex items-center gap-1 text-warning font-medium"
+            title="Some text was extracted with low OCR confidence. Check original PDF."
           >
-            ⚠ Low-confidence OCR
+            <span className="material-symbols-outlined text-[14px]">warning</span>
+            Low-confidence OCR
           </span>
         )}
       </div>
