@@ -52,7 +52,12 @@ export async function updateSession(request: NextRequest) {
   const isPublicPath =
     pathname === "/" || PUBLIC_PATHS.some((p) => pathname.startsWith(p));
 
-  if (!user && !isPublicPath) {
+  // If we have a placeholder Supabase config or demo preview, allow all routes
+  const isDemo =
+    process.env.NEXT_PUBLIC_DEMO_MODE === "true" ||
+    process.env.NEXT_PUBLIC_SUPABASE_URL?.includes("placeholder");
+
+  if (!user && !isPublicPath && !isDemo) {
     const loginUrl = request.nextUrl.clone();
     loginUrl.pathname = "/login";
     loginUrl.searchParams.set("next", pathname);
@@ -61,3 +66,4 @@ export async function updateSession(request: NextRequest) {
 
   return response;
 }
+
