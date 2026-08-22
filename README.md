@@ -1,188 +1,91 @@
-# 🔍 PaperLens
+# PaperLens
 
-> **AI-powered previous year question paper analyzer** — upload multiple exam PDFs, and get a fully ranked, deduplicated, topic-classified study bank with trend analytics.
+PaperLens is a full-stack exam-paper analysis workspace. Students upload past exam PDFs into subject folders, extract and group questions, inspect deterministic repeat and topic-weightage analytics, use study tools, and share a read-only analyzed view.
 
-PaperLens parses your exam papers, clusters semantically similar questions, scores each one by repeat frequency, recency, and marks weightage, and surfaces everything through a live React dashboard — no manual effort required.
+## Architecture
 
----
+- **Next.js 15 App Router**: server-rendered routes, authenticated server actions, and client components for interactive controls.
+- **TypeScript**: shared database and public-share contracts in `types/`.
+- **Tailwind CSS v4**: existing design tokens and component styling.
+- **Supabase Postgres**: folders, papers, questions, topics, cached analytics, jobs, study artifacts, and share links. Row-Level Security protects user-owned data.
+- **Supabase Storage**: private `exam-pdfs` bucket for uploaded papers.
+- **KaTeX**: math rendering through `components/ui/math-text.tsx` and `lib/math.ts`.
+- **FastAPI and Python**: server-side PDF extraction, OCR fallback, parsing, normalization, deduplication, topic analysis, scoring, and durable job processing.
 
-## ✅ What's Built & Working Right Now
+The browser never calls FastAPI. Authenticated Next.js server actions authorize folder ownership through Supabase, then enqueue internal FastAPI jobs with `PROCESSING_SERVICE_TOKEN`. Public share routes resolve hashed tokens and expose only the allowlisted result of `lib/share-projection.ts`.
 
-### Backend (FastAPI + Python)
+## Repository Layout
 
-The entire processing pipeline is **fully functional end-to-end**:
-
-| Feature | Status |
-|---|---|
-| Multi-PDF upload session creation | ✅ Working |
-| Native text extraction (PyMuPDF) | ✅ Working |
-| OCR fallback for scanned PDFs (Tesseract) | ✅ Working |
-| 3-stage automatic year detection | ✅ Working |
-| Manual year override with pipeline resume | ✅ Working |
-| Hierarchical question parser (3-level deep) | ✅ Working |
-| OCR normalization & noise removal | ✅ Working |
-| Question validation & confidence scoring | ✅ Working |
-| Rejected question audit trail | ✅ Working |
-| Exact-match deduplication (SHA-256 hashing) | ✅ Working |
-| Fuzzy similarity clustering (RapidFuzz) | ✅ Working |
-| Topic / chapter classification | ✅ Working |
-| 6-factor priority scoring engine | ✅ Working |
-| Pre-computed analytics caching | ✅ Working |
-| Duplicate PDF detection (idempotent processing) | ✅ Working |
-| Durable background job queue | ✅ Working |
-
-### Frontend (Next.js 15 + Tailwind CSS v4 + Supabase)
-
-| Feature | Status |
-|---|---|
-| Google & Email Authentication | ✅ Working |
-| Protected Dashboard & Folders | ✅ Working |
-| Multi-file drag-and-drop upload zone | ✅ Working |
-| Live progress polling with Realtime | ✅ Working |
-| Analytics dashboard (summary cards) | ✅ Working |
-| Topic weightage & question listing | ✅ Working |
-| Read-only public share links | ✅ Working |
-| Interactive checklists | ✅ Working |
-| AI Answer Hints | ✅ Working |
-| Mock Paper Generation | ✅ Working |
-| Row-Level Security (RLS) data isolation | ✅ Working |
-
----
-
-## 🏗️ Architecture
-
-```
-PaperLens/
-├── app/                          # Next.js App Router (Frontend + API Routes)
-│   ├── (auth)/                   # Authentication flows
-│   ├── (dashboard)/              # Protected user workspaces
-│   ├── (public)/                 # Public read-only share views
-│   └── api/                      # Job triggers, webhooks, auth
-├── components/                   # UI primitives and feature components
-├── lib/                          # Supabase clients (client, server, admin) and utils
-├── supabase/
-│   ├── migrations/               # PostgreSQL schema migrations
-│   └── seed.sql                  # Initial database seed
-├── backend/                      # Python FastAPI (Processing Engine)
-│   ├── main.py                   # API routes for background jobs
-│   ├── worker.py                 # Durable background processing loop
-│   ├── extraction/               # PDF, OCR, Parsing logic
-│   └── analysis/                 # Dedup, Similarity, Topics, Scoring
-└── .env.example
+```text
+app/                 Next.js routes and authenticated server actions
+components/          Client UI and reusable display components
+lib/                 Auth, Supabase clients, processing bridge, math, and projection
+supabase/migrations/ Postgres schema, RLS, storage, triggers, and queue functions
+types/               Database and public-share TypeScript contracts
+backend/             FastAPI service, worker, extraction, analysis, and database access
+tests/               Application and integration tests
 ```
 
-### Data Flow
+## Data Flow
 
-```
-PDF Upload(s) via Next.js
-     │
-     ▼
-[Supabase Storage + Database]
-  PDFs saved to private `exam-pdfs` bucket, tracking row created
-     │
-     ▼
-[FastAPI Job Queue]
-  Next.js triggers FastAPI `/internal/jobs/extract` endpoint
-     │
-     ▼
-[PDF Text Extraction & Parsing]
-  Native text (PyMuPDF)  →  fallback: OCR (Tesseract @ 150dpi)
-  3-level Question Parser → OCR Normalization → Validation
-     │
-     ▼
-[Deduplication & Clustering]
-  SHA-256 hash grouping → RapidFuzz clustering
-     │
-     ▼
-[Priority Scoring & Analytics]
-  6-factor composite scoring → pre-computed analytics caching
-     │
-     ▼
-[Next.js Dashboard]
-  Realtime UI updates → Ranked question bank + charts + study tools
-```
+1. A signed-in student creates a subject folder.
+2. PDFs are recorded under an owner-scoped path and uploaded to private Supabase Storage.
+3. Next.js enqueues extraction through the internal FastAPI service.
+4. The worker extracts text or OCR, records page provenance, parses questions, and updates Supabase.
+5. Deterministic grouping, topic coverage, repeat counts, marks weightage, and priority analytics are cached per folder.
+6. The private workspace reads authorized records; processing status is polled through a server action.
+7. A share token resolves to a read-only projection with no user IDs, storage paths, private notes, or job internals.
 
----
-
-## 🚀 Getting Started
+## Setup
 
 ### Prerequisites
 
-- **Node.js 18+**
-- **Python 3.10+**
-- **Supabase CLI** (for local database)
-- **Tesseract OCR** (for scanned PDFs)
+- Node.js 18+
+- Python 3.10+
+- Supabase CLI or a configured Supabase project
+- Tesseract OCR for scanned PDFs
 
-### 1. Database Setup
-
-```bash
-# Start local Supabase instance
-npx supabase start
-
-# Apply migrations
-npx supabase db push
-```
-
-### 2. Frontend
+### Frontend
 
 ```bash
-# Install dependencies
 npm install
-
-# Configure environment variables
-cp .env.example .env.local
-# (Fill in your Supabase URL, Anon Key, Service Role Key, and LLM API Key)
-
-# Start dev server
 npm run dev
 ```
 
-### 3. Backend (FastAPI)
+Configure `.env.local` with:
+
+```env
+NEXT_PUBLIC_SUPABASE_URL=...
+NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=...
+SUPABASE_SECRET_KEY=...
+PROCESSING_SERVICE_URL=http://127.0.0.1:8000
+PROCESSING_SERVICE_TOKEN=...
+LLM_API_KEY=...
+LLM_MODEL=...
+```
+
+Apply the migrations with the Supabase CLI, then run `npm run typecheck` and `npm test`.
+
+### Processing Service
 
 ```bash
 cd backend
-
-# Create and activate virtual environment
 python -m venv venv
-source venv/bin/activate  # macOS/Linux
-# venv\Scripts\activate   # Windows
-
-# Install dependencies
+venv\\Scripts\\activate
 pip install -r requirements.txt
-
-# Start the API server
 python -m uvicorn main:app --reload --port 8000
 ```
 
----
+The internal service exposes only extraction enqueue, analysis enqueue, and health routes. It requires its configured processing service token for internal job requests.
 
-## 🔧 Environment Variables
+## Security Boundaries
 
-### `.env.local`
+- All user-owned database tables use RLS and an ownership path to `auth.users`.
+- The service-role key, processing token, and LLM credentials remain server-side.
+- Uploaded PDFs stay in a private storage bucket.
+- `/share/[token]` is read-only and uses `lib/share-projection.ts` as its complete public surface.
+- Cached analytics are served from Supabase rather than recomputed on every page load.
 
-```env
-NEXT_PUBLIC_SUPABASE_URL=http://127.0.0.1:54321
-NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
-SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
+## License
 
-PROCESSING_SERVICE_URL=http://127.0.0.1:8000
-PROCESSING_SERVICE_TOKEN=dev-secret-token
-
-LLM_API_KEY=your-gemini-api-key
-LLM_MODEL=gemini-1.5-pro
-```
-
-### `backend/.env`
-
-```env
-SUPABASE_URL=http://127.0.0.1:54321
-SUPABASE_SERVICE_KEY=your-service-role-key
-API_TOKEN=dev-secret-token
-TESSERACT_CMD=C:\Program Files\Tesseract-OCR\tesseract.exe
-```
-
----
-
-## 📄 License
-
-MIT — see [LICENSE](LICENSE).
+MIT. See [LICENSE](LICENSE).

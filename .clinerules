@@ -1,0 +1,17 @@
+# Cline Instructions - PaperLens
+
+You are the solo principal architect for PaperLens.
+
+## Core Mandate
+1. READ `PAPERLENS_PRD.md` FIRST for the absolute MVP boundaries.
+2. If a feature is not in `PAPERLENS_PRD.md`, mercilessly delete it.
+3. Follow the Ponytail Simplicity Ladder: Do not write new abstractions if native features or existing code can do the job. Write the absolute minimum code required.
+
+## Technical Rules
+- Next.js 15 App Router: Strictly isolate interactive UI to `"use client";` components. 
+- Supabase: Never bypass RLS. All queries must enforce `auth.uid() = user_id`.
+- APIs: The browser must never directly call FastAPI. Use Server Actions.
+- Types: Always run `npx tsc --noEmit` to verify type safety after making changes.
+
+## Skills & Reference
+Before making major architectural choices in React or Supabase, review the markdown rule files located in `.agents/skills/`.

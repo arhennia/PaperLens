@@ -3,7 +3,11 @@
 import { useCallback, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { STORAGE_BUCKET } from "@/lib/env";
-import { createPaperRecord, triggerExtraction } from "@/app/actions/papers";
+import {
+  createPaperRecord,
+  deletePaperRecord,
+  triggerExtraction,
+} from "@/app/actions/papers";
 import { formatFileSize } from "@/lib/format";
 import { buttonPrimary } from "@/components/ui/button";
 
@@ -13,6 +17,8 @@ interface UploadFile {
   error?: string;
 }
 
+const MAX_FILE_SIZE = 25 * 1024 * 1024;
+
 export function UploadZone({ folderId }: { folderId: string }) {
   const [files, setFiles] = useState<UploadFile[]>([]);
   const [isDragging, setIsDragging] = useState(false);
@@ -21,7 +27,7 @@ export function UploadZone({ folderId }: { folderId: string }) {
   const handleFiles = useCallback(
     async (fileList: FileList) => {
       const pdfFiles = Array.from(fileList).filter(
-        (f) => f.type === "application/pdf",
+        (file) => file.type === "application/pdf" && file.size <= MAX_FILE_SIZE,
       );
       if (pdfFiles.length === 0) return;
 
@@ -31,6 +37,7 @@ export function UploadZone({ folderId }: { folderId: string }) {
       }));
       setFiles((prev) => [...prev, ...uploadFiles]);
       setIsUploading(true);
+      let successfulUploads = 0;
 
       const supabase = createClient();
 
@@ -42,22 +49,25 @@ export function UploadZone({ folderId }: { folderId: string }) {
           ),
         );
 
+        let paperId: string | null = null;
         try {
           // Step 1: Create paper row.
-          const { storagePath } = await createPaperRecord(
+          const created = await createPaperRecord(
             folderId,
             uf.file.name,
           );
+          paperId = created.paperId;
 
           // Step 2: Upload to Supabase Storage.
           const { error } = await supabase.storage
             .from(STORAGE_BUCKET)
-            .upload(storagePath, uf.file, {
+            .upload(created.storagePath, uf.file, {
               upsert: true,
               contentType: "application/pdf",
             });
 
           if (error) throw error;
+          successfulUploads += 1;
 
           setFiles((prev) =>
             prev.map((f) =>
@@ -65,6 +75,9 @@ export function UploadZone({ folderId }: { folderId: string }) {
             ),
           );
         } catch (err) {
+          if (paperId) {
+            await deletePaperRecord(folderId, paperId).catch(() => undefined);
+          }
           setFiles((prev) =>
             prev.map((f) =>
               f.file.name === uf.file.name
@@ -82,11 +95,12 @@ export function UploadZone({ folderId }: { folderId: string }) {
         }
       }
 
-      // Step 3: Trigger extraction for the folder.
-      try {
-        await triggerExtraction(folderId);
-      } catch {
-        // Non-critical: the user can manually trigger later.
+      if (successfulUploads > 0) {
+        try {
+          await triggerExtraction(folderId);
+        } catch {
+          // Non-critical: the user can manually trigger later.
+        }
       }
 
       setIsUploading(false);

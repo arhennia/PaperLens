@@ -187,6 +187,31 @@ function ChecklistTab({
     return `${mins.toString().padStart(2, "0")}:${secs.toString().padStart(2, "0")}`;
   };
 
+  function downloadAnkiCsv() {
+    const rows = groups.map((group) =>
+      [`${group.topic_name ?? "General"}: ${group.canonical_text}`, ""]
+        .map((value) => `"${value.replaceAll('"', '""')}"`)
+        .join(","),
+    );
+    const blob = new Blob([rows.join("\n")], { type: "text/csv;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = "paperlens-flashcards.csv";
+    link.click();
+    URL.revokeObjectURL(url);
+  }
+
+  function copyQuestions(format: "markdown" | "latex") {
+    const text = groups
+      .map((group) => {
+        const question = `${group.topic_name ?? "General"}: ${group.canonical_text}`;
+        return format === "markdown" ? `- ${question}` : `\\item ${question}`;
+      })
+      .join("\n");
+    void navigator.clipboard.writeText(text);
+  }
+
   return (
     <div className="grid gap-6 lg:grid-cols-3">
       {/* Left 2 Cols: High-Yield Checklist Tasks */}
@@ -214,13 +239,37 @@ function ChecklistTab({
                       `[${checked[g.id] ? "x" : " "}] ${g.topic_name || "General"}: ${g.canonical_text.slice(0, 100)}`,
                   )
                   .join("\n");
-                navigator.clipboard.writeText(text);
-                alert("Planner copied to clipboard!");
+                void navigator.clipboard.writeText(text);
               }}
               className="inline-flex items-center gap-1 rounded-lg border border-border bg-surface px-3 py-1.5 text-xs font-medium text-ink hover:bg-surface-container transition-colors cursor-pointer"
             >
               <span className="material-symbols-outlined text-[16px]">ios_share</span>
               <span>Export Planner</span>
+            </button>
+            <button
+              type="button"
+              onClick={downloadAnkiCsv}
+              disabled={groups.length === 0}
+              className="inline-flex items-center gap-1 rounded-lg border border-border bg-surface px-3 py-1.5 text-xs font-medium text-ink hover:bg-surface-container transition-colors cursor-pointer disabled:opacity-50"
+            >
+              <span className="material-symbols-outlined text-[16px]">download</span>
+              <span>Anki Export</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => copyQuestions("markdown")}
+              disabled={groups.length === 0}
+              className="inline-flex items-center gap-1 rounded-lg border border-border bg-surface px-3 py-1.5 text-xs font-medium text-ink hover:bg-surface-container transition-colors cursor-pointer disabled:opacity-50"
+            >
+              <span>Markdown</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => copyQuestions("latex")}
+              disabled={groups.length === 0}
+              className="inline-flex items-center gap-1 rounded-lg border border-border bg-surface px-3 py-1.5 text-xs font-medium text-ink hover:bg-surface-container transition-colors cursor-pointer disabled:opacity-50"
+            >
+              <span>LaTeX</span>
             </button>
           </div>
         </div>
@@ -434,46 +483,10 @@ function MockPaperTab({
 
       if (result.status === "ok") {
         setMockPaper(result.payload);
-      } else if (result.status === "not_configured") {
-        // Provide mock fallback paper so user can immediately preview without API key setup
-        setMockPaper({
-          title: "AI PREDICTED EXAMINATION PAPER (CS302)",
-          totalMarks: 100,
-          questions: [
-            {
-              text: "Explain the ACID properties in database transaction management with suitable real-world examples.",
-              marks: 4,
-              topic: "Transactions & Concurrency",
-              source: "88% Prediction Score",
-            },
-            {
-              text: "Differentiate between Physical and Logical Data Independence in a 3-tier DBMS architecture.",
-              marks: 4,
-              topic: "DBMS Architecture",
-              source: "82% Prediction Score",
-            },
-            {
-              text: "What are the primary advantages of using a $B^+$ Tree over a standard B-Tree for database indexing?",
-              marks: 4,
-              topic: "Indexing & Hashing",
-              source: "91% Prediction Score",
-            },
-            {
-              text: "Construct a B-Tree of order 5 by inserting keys: $10, 20, 30, 40, 50, 60, 70, 80$. Show tree structure after each node split.",
-              marks: 10,
-              topic: "Indexing & Hashing",
-              source: "High Recency Trend",
-            },
-            {
-              text: "Given relation $R(A, B, C, D, E)$ with functional dependencies $A \\rightarrow BC$, $CD \\rightarrow E$, $B \\rightarrow D$, $E \\rightarrow A$. Identify candidate keys and decompose $R$ into BCNF.",
-              marks: 10,
-              topic: "Normalization Forms",
-              source: "High Recency Trend",
-            },
-          ],
-        });
       } else if (result.status === "budget_exhausted") {
         setError("Daily AI budget exhausted. Try again later.");
+      } else if (result.status === "not_configured") {
+        setError("AI generation is not configured.");
       } else {
         setError("Could not generate mock paper. Try again in a moment.");
       }
@@ -544,25 +557,6 @@ function MockPaperTab({
       <div className="grid gap-6 lg:grid-cols-3">
         {/* Left Col: Algorithm Parameters & Mark Distribution */}
         <div className="space-y-4">
-          {/* Accuracy Card */}
-          <div className="rounded-2xl border border-border bg-surface p-5 shadow-xs">
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-xs font-bold uppercase tracking-wider text-muted">
-                Historical Accuracy
-              </span>
-              <span className="material-symbols-outlined text-success text-[20px]">
-                verified
-              </span>
-            </div>
-            <div className="flex items-baseline gap-2">
-              <span className="text-3xl font-bold text-ink">85%</span>
-              <span className="text-xs text-success font-semibold">High Predictive Match</span>
-            </div>
-            <p className="mt-2 text-[11px] text-faint">
-              Based on recurrent question structures from past 5 examination terms
-            </p>
-          </div>
-
           {/* Algorithm Controls */}
           <div className="rounded-2xl border border-border bg-surface p-5 shadow-xs space-y-4">
             <div className="flex items-center gap-2 border-b border-border pb-2">
@@ -822,10 +816,10 @@ function FlashcardTab({
       if (result.status === "ok") {
         setHint(result.payload.text);
       } else {
-        setHint("Key concept: Review the formal definition and proof steps associated with this topic.");
+        setHint("Answer hint unavailable.");
       }
     } catch {
-      setHint("Key concept summary: Focus on core derivation and formula mechanics.");
+      setHint("Answer hint unavailable.");
     }
     setHintLoading(false);
   }

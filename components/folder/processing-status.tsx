@@ -12,58 +12,30 @@
 
 import { useEffect, useState } from "react";
 
-import { createClient } from "@/lib/supabase/client";
+import { getProcessingJobs } from "@/app/actions/papers";
 import type { ProcessingJobsRow } from "@/types/database.generated";
 
 const STATUS_LABELS: Record<string, string> = {
-  queued: "Queued for processing…",
-  running: "Processing papers…",
-  succeeded: "Processing complete",
-  failed: "Processing failed",
+  queued: "Analyzing…",
+  running: "Analyzing Exam Papers",
+  succeeded: "Analysis Complete",
+  failed: "Analysis Failed",
 };
 
 export function ProcessingStatus({ folderId }: { folderId: string }) {
   const [jobs, setJobs] = useState<ProcessingJobsRow[]>([]);
 
   useEffect(() => {
-    const supabase = createClient();
-
     // Initial fetch.
     async function fetchJobs() {
-      const { data } = await supabase
-        .from("processing_jobs")
-        .select("*")
-        .eq("folder_id", folderId)
-        .in("status", ["queued", "running"])
-        .order("created_at", { ascending: false });
-
-      setJobs(data ?? []);
+      setJobs(await getProcessingJobs(folderId));
     }
     fetchJobs();
-
-    // Realtime subscription.
-    const channel = supabase
-      .channel(`jobs-${folderId}`)
-      .on(
-        "postgres_changes",
-        {
-          event: "*",
-          schema: "public",
-          table: "processing_jobs",
-          filter: `folder_id=eq.${folderId}`,
-        },
-        () => {
-          // Re-fetch on any change to get the full, RLS-filtered state.
-          fetchJobs();
-        },
-      )
-      .subscribe();
 
     // Polling fallback.
     const interval = setInterval(fetchJobs, 5000);
 
     return () => {
-      supabase.removeChannel(channel);
       clearInterval(interval);
     };
   }, [folderId]);
@@ -87,7 +59,7 @@ export function ProcessingStatus({ folderId }: { folderId: string }) {
             {STATUS_LABELS[activeJob.status] ?? activeJob.status}
           </span>
           <span className="text-xs text-muted">
-            ({activeJob.job_type === "extract" ? "Extraction" : "Analysis"})
+            {activeJob.job_type === "extract" ? "Parsing" : "Analytics"}
           </span>
         </div>
         <span className="text-xs font-medium tabular-nums text-accent">

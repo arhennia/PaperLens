@@ -68,3 +68,11 @@ A new teammate should be able to answer:
 without understanding the entire architecture.
 
 Do not optimize for minimum lines of code. Optimize for minimum unnecessary complexity.
+
+## Key Project Documents
+- `AGENTS.md`: The core architecture constitution, product definition, and security rules.
+- `DECISIONS.md`: The technical record of all architectural decisions (D-001 to D-040+). Append technical reasoning for new non-trivial changes here.
+- `WORK_BY_SWAYAM.md`: The human-readable changelog written in plain language (no unexplained jargon) for non-technical teammates explaining what changed, why, and what a user notices.
+- `AUDIT.md`: The historical Phase 0 baseline audit (read-only reference; do not edit).
+
+- `PAPERLENS_PRD.md`: The absolute source of truth for the MVP scope. As the solo developer, I require AI agents to use this to determine what to build and what to ruthlessly delete. If a feature or component is not mapped to this document, delete it.

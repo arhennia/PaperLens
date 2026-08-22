@@ -5,7 +5,6 @@ import { buildSharedFolder } from "@/lib/share-projection";
 
 import { MathText } from "@/components/ui/math-text";
 import { Badge } from "@/components/ui/badge";
-import { StudyTools } from "@/components/folder/study-tools";
 
 export default async function SharedFolderPage({
   params,
@@ -14,152 +13,106 @@ export default async function SharedFolderPage({
 }) {
   const { token } = await params;
 
-  let folderId = "";
-  let folder: any = null;
-  let papers: any[] = [];
-  let analytics: any = null;
-  let topics: any[] = [];
-  let groups: any[] = [];
+  const tokenHash = hashShareToken(token);
+  const supabase = createAdminClient();
 
-  try {
-    const tokenHash = hashShareToken(token);
-    const supabase = createAdminClient();
+  // Resolve the token before reading any public projection inputs.
+  const { data: link } = await supabase
+    .from("share_links")
+    .select("folder_id, revoked_at, expires_at")
+    .eq("token_hash", tokenHash)
+    .single();
 
-    // 1. Resolve token
-    const { data: link } = await supabase
-      .from("share_links")
-      .select("folder_id, revoked_at, expires_at")
-      .eq("token_hash", tokenHash)
-      .single();
-
-    if (
-      link &&
-      !link.revoked_at &&
-      (!link.expires_at || new Date(link.expires_at) >= new Date())
-    ) {
-      folderId = link.folder_id;
-
-      // 2. Fetch everything scoped to folderId
-      const { data: dbFolder } = await supabase
-        .from("folders")
-        .select("name, subject, exam_name, reference_year")
-        .eq("id", folderId)
-        .single();
-      folder = dbFolder;
-
-      const { data: dbPapers } = await supabase
-        .from("papers")
-        .select("year")
-        .eq("folder_id", folderId)
-        .in("extraction_status", ["extracted"]);
-      papers = dbPapers ?? [];
-
-      const { data: dbAnalytics } = await supabase
-        .from("folder_analytics")
-        .select("payload")
-        .eq("folder_id", folderId)
-        .single();
-      analytics = dbAnalytics;
-
-      const { data: dbTopics } = await supabase
-        .from("topics")
-        .select("id, name")
-        .eq("folder_id", folderId);
-      topics = dbTopics ?? [];
-
-      const { data: dbGroups } = await supabase
-        .from("question_groups")
-        .select(
-          `
-          id,
-          canonical_text,
-          marks,
-          priority_level,
-          priority_score,
-          priority_reason,
-          occurrence_count,
-          distinct_years,
-          first_year,
-          last_year,
-          topic_id,
-          questions (
-            question_label,
-            page_number,
-            confidence,
-            question_type,
-            difficulty
-          )
-        `,
-        )
-        .eq("folder_id", folderId);
-      groups = dbGroups ?? [];
-    }
-  } catch {
-    // Database offline
+  if (!link || link.revoked_at || (link.expires_at && new Date(link.expires_at) < new Date())) {
+    notFound();
   }
 
-  // Fallback for demo token preview
-  if (!folder) {
-    const { getMockFolderWorkspace } = await import("@/lib/mock-data");
-    const mock = getMockFolderWorkspace();
-    folder = {
-      name: mock.folder.name,
-      subject: mock.folder.subject,
-      exam_name: mock.folder.exam_name,
-      reference_year: 2024,
-    };
-    folderId = mock.folder.id;
-    papers = [{ year: 2024 }, { year: 2023 }, { year: 2022 }, { year: 2021 }];
-    analytics = mock.analytics;
-    topics = mock.topics;
-    groups = mock.topicGroups.flatMap((tg) =>
-      tg.groups.map((g) => ({
-        id: g.id,
-        canonical_text: g.canonical_text,
-        marks: g.marks,
-        priority_level: g.priority_level,
-        priority_score: g.priority_score,
-        priority_reason: "High frequency in recent end-semester examinations.",
-        occurrence_count: g.occurrence_count,
-        distinct_years: 3,
-        first_year: 2021,
-        last_year: 2024,
-        topic_id: tg.topic?.id ?? null,
-        questions: [
-          {
-            question_label: g.question_label,
-            page_number: g.page_numbers[0] ?? 1,
-            confidence: 0.95,
-            question_type: g.question_type,
-            difficulty: g.difficulty,
-          },
-        ],
-      }))
-    );
+  const folderId = link.folder_id;
+  const [
+    { data: folder },
+    { data: papers },
+    { data: analytics },
+    { data: topics },
+    { data: rawGroups },
+    { data: rawQuestions },
+  ] = await Promise.all([
+    supabase
+      .from("folders")
+      .select("name, subject, exam_name, reference_year")
+      .eq("id", folderId)
+      .single(),
+    supabase
+      .from("papers")
+      .select("year")
+      .eq("folder_id", folderId)
+      .in("extraction_status", ["extracted"]),
+    supabase
+      .from("folder_analytics")
+      .select("payload")
+      .eq("folder_id", folderId)
+      .single(),
+    supabase
+      .from("topics")
+      .select("id, name")
+      .eq("folder_id", folderId),
+    supabase
+      .from("question_groups")
+      .select(
+        `
+        id,
+        canonical_text,
+        avg_marks,
+        priority_level,
+        priority_score,
+        priority_reason,
+        occurrence_count,
+        distinct_years,
+        first_year,
+        last_year,
+        topic_id
+      `,
+      )
+      .eq("folder_id", folderId),
+    supabase
+      .from("questions")
+      .select("group_id, question_label, page_number, confidence, question_type, difficulty, marks")
+      .eq("folder_id", folderId),
+  ]);
+
+  if (!folder) notFound();
+
+  const topicMap = new Map((topics ?? []).map((t) => [t.id, t.name]));
+
+  // Group questions by group_id in memory
+  type QuestionItem = NonNullable<typeof rawQuestions>[number];
+  const questionsByGroup = new Map<string, QuestionItem[]>();
+  for (const q of rawQuestions ?? []) {
+    if (!q.group_id) continue;
+    const list = questionsByGroup.get(q.group_id) ?? [];
+    list.push(q);
+    questionsByGroup.set(q.group_id, list);
   }
 
-
-  // 3. Prepare for projection
-  const topicMap = new Map((topics ?? []).map((t: any) => [t.id, t.name]));
-
-
-  const shareGroupsInput = (groups ?? []).map((g: any) => {
-    const qLabel = g.questions?.[0]?.question_label;
+  const shareGroupsInput = (rawGroups ?? []).map((g) => {
+    const qList = questionsByGroup.get(g.id) ?? [];
+    const qLabel = qList[0]?.question_label ?? null;
     const pages = Array.from(
       new Set(
-        g.questions?.map((q: any) => q.page_number).filter(Boolean) as number[],
+        qList
+          .map((q) => q.page_number)
+          .filter((p): p is number => p !== null && p !== undefined),
       ),
     );
-    const hasLowConf = g.questions?.some(
-      (q: any) => q.confidence && q.confidence < 0.8,
+    const hasLowConf = qList.some(
+      (q) => q.confidence !== null && q.confidence !== undefined && q.confidence < 80,
     );
-    const type = g.questions?.[0]?.question_type;
-    const diff = g.questions?.[0]?.difficulty;
+    const type = qList[0]?.question_type ?? null;
+    const diff = qList[0]?.difficulty ?? null;
 
     return {
       id: g.id,
       canonical_text: g.canonical_text,
-      marks: g.marks,
+      marks: g.avg_marks,
       question_type: type,
       difficulty: diff,
       priority_level: g.priority_level,
@@ -171,7 +124,7 @@ export default async function SharedFolderPage({
       last_year: g.last_year,
       question_label: qLabel,
       topic_name: g.topic_id ? topicMap.get(g.topic_id) ?? null : null,
-      page_numbers: pages as number[],
+      page_numbers: pages,
       has_low_confidence_extraction: hasLowConf,
       similar_variation_count: 0,
     };
@@ -183,16 +136,6 @@ export default async function SharedFolderPage({
     analyticsPayload: analytics?.payload,
     groups: shareGroupsInput,
   });
-
-  // 4. Map for StudyTools
-  const studyGroups = shared.questionGroups.map((g) => ({
-    id: g.id,
-    canonical_text: g.canonicalText,
-    occurrence_count: g.repeatCount,
-    priority_level: g.priorityLevel,
-    marks: g.marks,
-    topic_name: g.topicName,
-  }));
 
   return (
     <div className="space-y-6">
@@ -294,7 +237,7 @@ export default async function SharedFolderPage({
 
                 {q.repeatCount > 1 && (
                   <Badge className="bg-warning-soft text-warning border-warning/30 font-bold">
-                    🔥 Repeated {q.repeatCount}x
+                    Repeated {q.repeatCount}x
                   </Badge>
                 )}
 
@@ -343,9 +286,6 @@ export default async function SharedFolderPage({
           ))}
         </div>
       </div>
-
-      {/* Interactive Study Suite in Read-Only Shared Mode */}
-      <StudyTools folderId={folderId} groups={studyGroups} />
     </div>
   );
 }

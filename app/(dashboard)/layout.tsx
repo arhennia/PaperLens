@@ -19,7 +19,8 @@ export default async function DashboardLayout({
   if (!user) redirect("/login");
 
   let folders: { id: string; name: string; subject: string | null }[] = [];
-  let displayName = "Alex Chen";
+  let displayName = user.email ?? "";
+  let userCreatedAt = user.created_at ?? null;
 
   try {
     const supabase = await createClient();
@@ -42,16 +43,7 @@ export default async function DashboardLayout({
       displayName = profile.display_name;
     }
   } catch {
-    // Database offline
-  }
-
-  if (folders.length === 0) {
-    const { MOCK_FOLDERS } = await import("@/lib/mock-data");
-    folders = MOCK_FOLDERS.map((f) => ({
-      id: f.id,
-      name: f.name,
-      subject: f.subject,
-    }));
+    throw new Error("Unable to load dashboard data.");
   }
 
   return (
@@ -60,6 +52,7 @@ export default async function DashboardLayout({
       <AppHeader
         userEmail={user.email}
         displayName={displayName}
+        createdAt={userCreatedAt}
       />
 
       {/* Main App Body with SideNav */}

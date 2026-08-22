@@ -39,7 +39,7 @@ export async function createFolder(formData: FormData) {
   if (error) throw new Error("Failed to create folder.");
 
   revalidatePath("/");
-  redirect(`/folders/${data.id}`);
+  return { folderId: data.id };
 }
 
 /** Deletes a folder the signed-in user owns. RLS enforces ownership. */

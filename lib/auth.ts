@@ -17,7 +17,6 @@ import { redirect } from "next/navigation";
 
 import { createClient, getUser } from "@/lib/supabase/server";
 import type { FoldersRow } from "@/types/database.generated";
-import { MOCK_FOLDERS, MOCK_USER } from "@/lib/mock-data";
 
 /**
  * Returns the signed-in user, or redirects to the login page.
@@ -36,32 +35,18 @@ export async function requireUser(next?: string) {
 /**
  * Loads a folder the signed-in user owns, or redirects.
  *
- * Falls back to mock folder in preview/offline mode.
  */
 export async function requireFolder(folderId: string): Promise<FoldersRow> {
   const user = await requireUser(`/folders/${folderId}`);
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("folders")
+    .select("*")
+    .eq("id", folderId)
+    .eq("user_id", user.id)
+    .maybeSingle();
 
-  try {
-    const supabase = await createClient();
-    const { data } = await supabase
-      .from("folders")
-      .select("*")
-      .eq("id", folderId)
-      .maybeSingle();
-
-    if (data && data.user_id === user.id) {
-      return data;
-    }
-  } catch {
-    // Database unreachable
-  }
-
-  // Graceful fallback for demo/preview inspection
-  const mock = MOCK_FOLDERS.find((f) => f.id === folderId) || MOCK_FOLDERS[0];
-  if (mock) {
-    return mock;
-  }
-
+  if (data) return data;
   redirect("/");
 }
 

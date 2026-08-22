@@ -1,6 +1,7 @@
 "use client";
 
 import { useRef, useState, useTransition, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { createFolder } from "@/app/actions/folders";
 import { buttonPrimary, buttonSecondary } from "@/components/ui/button";
 
@@ -10,6 +11,7 @@ interface CreateFolderModalProps {
 }
 
 export function CreateFolderModal({ isOpen, onClose }: CreateFolderModalProps) {
+  const router = useRouter();
   const dialogRef = useRef<HTMLDialogElement>(null);
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
@@ -39,8 +41,10 @@ export function CreateFolderModal({ isOpen, onClose }: CreateFolderModalProps) {
     setError(null);
     startTransition(async () => {
       try {
-        await createFolder(formData);
+        const { folderId } = await createFolder(formData);
         close();
+        router.push(`/folders/${folderId}`);
+        router.refresh();
       } catch (e) {
         setError(e instanceof Error ? e.message : "Something went wrong.");
       }
@@ -56,7 +60,7 @@ export function CreateFolderModal({ isOpen, onClose }: CreateFolderModalProps) {
           className="flex items-center gap-2 rounded-lg bg-[#FD6B2A] px-5 py-3 text-xs font-bold uppercase tracking-wider text-white shadow-xs transition-colors hover:bg-[#E05B22]"
         >
           <span className="material-symbols-outlined text-[18px]">add_circle</span>
-          <span>New Analysis Group</span>
+          <span>New Subject Folder</span>
         </button>
       )}
 
@@ -70,7 +74,7 @@ export function CreateFolderModal({ isOpen, onClose }: CreateFolderModalProps) {
               create_new_folder
             </span>
             <h2 className="text-base font-bold text-gray-900">
-              Create New Analysis Group
+              Create New Subject Folder
             </h2>
           </div>
           <button
@@ -95,7 +99,7 @@ export function CreateFolderModal({ isOpen, onClose }: CreateFolderModalProps) {
               htmlFor="name"
               className="block text-xs font-semibold text-gray-800 mb-1"
             >
-              Group / Exam Name <span className="text-red-500">*</span>
+                Folder Name <span className="text-red-500">*</span>
             </label>
             <input
               id="name"
@@ -160,7 +164,7 @@ export function CreateFolderModal({ isOpen, onClose }: CreateFolderModalProps) {
               className="rounded-lg bg-[#0099FF] px-4 py-2 text-xs font-semibold text-white hover:bg-[#0088ee] disabled:opacity-50"
               disabled={isPending}
             >
-              {isPending ? "Creating..." : "Create Analysis Group"}
+              {isPending ? "Creating..." : "Create Subject Folder"}
             </button>
           </div>
         </form>

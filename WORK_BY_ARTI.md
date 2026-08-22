@@ -76,7 +76,7 @@ Additionally, a standalone **Preview & Demo Mode** with realistic academic mock 
 
 ### 2.6 AI Predicted Mock Paper Generator
 - **Exam Header Controls** (Matching Reference Image 4):
-  - `⟳ Generate New Paper` (Orange CTA) and `📄 Export Printable PDF` buttons.
+  - Generate New Paper and Export Printable PDF buttons (primary and secondary CTAs).
   - Subtitle: *"Based on 5 historical DBMS past papers (2019-2024) using frequency & recency algorithms"*.
 - **Formal University Exam Sheet**:
   - Center header: `DATABASE MANAGEMENT SYSTEMS (CS302) | TIME ALLOWED: 3 HOURS | TOTAL MARKS: 100`.

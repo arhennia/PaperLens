@@ -12,8 +12,9 @@
  */
 
 import { revalidatePath } from "next/cache";
+import { randomUUID } from "node:crypto";
 
-import { authenticateRoute, authorizeFolderRoute } from "@/lib/auth";
+import { authorizeFolderRoute } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import {
   enqueueExtraction,
@@ -29,31 +30,54 @@ export async function createPaperRecord(
   if (auth.response) throw new Error("Folder not found.");
 
   const supabase = await createClient();
+  const paperId = randomUUID();
+  const storagePath = `${auth.user.id}/${folderId}/${paperId}.pdf`;
   const { data, error } = await supabase
     .from("papers")
     .insert({
+      id: paperId,
       folder_id: folderId,
       user_id: auth.user.id,
       original_filename: originalFilename,
-      storage_path: "", // Placeholder — set after we know the paper ID.
+      storage_path: storagePath,
     })
-    .select("id")
+    .select("id, storage_path")
     .single();
 
   if (error) throw new Error("Failed to create paper record.");
 
-  // Storage path follows the spec: {user_id}/{folder_id}/{paper_id}.pdf
-  const storagePath = `${auth.user.id}/${folderId}/${data.id}.pdf`;
-
-  // Update the row with the real path.
-  await supabase
-    .from("papers")
-    .update({ storage_path: storagePath })
-    .eq("id", data.id);
-
   revalidatePath(`/folders/${folderId}`);
 
-  return { paperId: data.id, storagePath };
+  return { paperId: data.id, storagePath: data.storage_path };
+}
+
+export async function deletePaperRecord(folderId: string, paperId: string) {
+  const auth = await authorizeFolderRoute(folderId);
+  if (auth.response) throw new Error("Folder not found.");
+
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from("papers")
+    .delete()
+    .eq("id", paperId)
+    .eq("folder_id", folderId);
+
+  if (error) throw new Error("Failed to clean up paper record.");
+}
+
+export async function getProcessingJobs(folderId: string) {
+  const auth = await authorizeFolderRoute(folderId);
+  if (auth.response) throw new Error("Folder not found.");
+
+  const { data, error } = await auth.supabase
+    .from("processing_jobs")
+    .select("*")
+    .eq("folder_id", folderId)
+    .in("status", ["queued", "running"])
+    .order("created_at", { ascending: false });
+
+  if (error) throw new Error("Unable to load processing status.");
+  return data ?? [];
 }
 
 /**

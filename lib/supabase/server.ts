@@ -3,7 +3,6 @@ import { createServerClient } from "@supabase/ssr";
 
 import { supabasePublishableKey, supabaseUrl } from "@/lib/env";
 import type { Database } from "@/types/database.generated";
-import { MOCK_USER } from "@/lib/mock-data";
 
 /**
  * Supabase client for Server Components and route handlers.
@@ -41,20 +40,12 @@ export async function createClient() {
 /**
  * Returns the signed-in user, or null.
  *
- * Falls back to preview user when running in demo/offline preview mode.
  */
 export async function getUser() {
-  try {
-    const supabase = await createClient();
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-    if (user) return user;
-  } catch {
-    // Database or auth server unreachable
-  }
-
-  // Graceful fallback for offline preview and development review
-  return MOCK_USER as any;
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  return user;
 }
 
